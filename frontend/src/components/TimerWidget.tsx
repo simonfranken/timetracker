@@ -1,0 +1,163 @@
+import { useState } from 'react';
+import { Play, Square, ChevronDown } from 'lucide-react';
+import { useTimer } from '@/contexts/TimerContext';
+import { useProjects } from '@/hooks/useProjects';
+import { formatDuration } from '@/utils/dateUtils';
+
+export function TimerWidget() {
+  const { ongoingTimer, isLoading, elapsedSeconds, startTimer, stopTimer, updateTimerProject } = useTimer();
+  const { projects } = useProjects();
+  const [showProjectSelect, setShowProjectSelect] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleStart = async () => {
+    setError(null);
+    try {
+      await startTimer();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start timer');
+    }
+  };
+
+  const handleStop = async () => {
+    setError(null);
+    try {
+      await stopTimer();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to stop timer');
+    }
+  };
+
+  const handleProjectChange = async (projectId: string) => {
+    setError(null);
+    try {
+      await updateTimerProject(projectId);
+      setShowProjectSelect(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update project');
+    }
+  };
+
+  const handleClearProject = async () => {
+    setError(null);
+    try {
+      await updateTimerProject(null);
+      setShowProjectSelect(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to clear project');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">
+        <div className="max-w-7xl mx-auto flex items-center justify-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg z-50">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        {ongoingTimer ? (
+          <>
+            {/* Running Timer Display */}
+            <div className="flex items-center space-x-4 flex-1">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                <span className="text-2xl font-mono font-bold text-gray-900">
+                  {formatDuration(elapsedSeconds)}
+                </span>
+              </div>
+
+              {/* Project Selector */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowProjectSelect(!showProjectSelect)}
+                  className="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  {ongoingTimer.project ? (
+                    <>
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: ongoingTimer.project.color || '#6b7280' }}
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        {ongoingTimer.project.name}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-sm font-medium text-gray-500">
+                      Select project...
+                    </span>
+                  )}
+                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                </button>
+
+                {showProjectSelect && (
+                  <div className="absolute bottom-full left-0 mb-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 max-h-64 overflow-y-auto">
+                    <button
+                      onClick={handleClearProject}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-500 hover:bg-gray-50 border-b border-gray-100"
+                    >
+                      No project
+                    </button>
+                    {projects?.map((project) => (
+                      <button
+                        key={project.id}
+                        onClick={() => handleProjectChange(project.id)}
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center space-x-2"
+                      >
+                        <div
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: project.color || '#6b7280' }}
+                        />
+                        <div className="min-w-0">
+                          <div className="font-medium text-gray-900 truncate">{project.name}</div>
+                          <div className="text-xs text-gray-500 truncate">{project.client.name}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Stop Button */}
+            <button
+              onClick={handleStop}
+              className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+            >
+              <Square className="h-5 w-5 fill-current" />
+              <span>Stop</span>
+            </button>
+          </>
+        ) : (
+          <>
+            {/* Stopped Timer Display */}
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-500">Ready to track time</span>
+            </div>
+
+            {/* Start Button */}
+            <button
+              onClick={handleStart}
+              className="flex items-center space-x-2 px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+            >
+              <Play className="h-5 w-5 fill-current" />
+              <span>Start</span>
+            </button>
+          </>
+        )}
+      </div>
+
+      {error && (
+        <div className="max-w-7xl mx-auto mt-2">
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
+    </div>
+  );
+}

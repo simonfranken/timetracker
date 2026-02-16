@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @db.VarChar(255)
+  username  String   @db.VarChar(255)
+  email     String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  clients       Client[]
+  projects      Project[]
+  timeEntries   TimeEntry[]
+  ongoingTimer  OngoingTimer?
+
+  @@map("users")
+}
+
+model Client {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  userId   String @map("user_id") @db.VarChar(255)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects Project[]
+
+  @@index([userId])
+  @@map("clients")
+}
+
+model Project {
+  id          String  @id @default(uuid())
+  name        String  @db.VarChar(255)
+  description String? @db.Text
+  color       String? @db.VarChar(7) // Hex color code
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  userId   String @map("user_id") @db.VarChar(255)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId String @map("client_id")
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  timeEntries  TimeEntry[]
+  ongoingTimer OngoingTimer?
+
+  @@index([userId])
+  @@index([clientId])
+  @@map("projects")
+}
+
+model TimeEntry {
+  id          String   @id @default(uuid())
+  startTime   DateTime @map("start_time") @db.Timestamptz()
+  endTime     DateTime @map("end_time") @db.Timestamptz()
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  userId    String @map("user_id") @db.VarChar(255)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String @map("project_id")
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, startTime])
+  @@index([projectId])
+  @@map("time_entries")
+}
+
+model OngoingTimer {
+  id        String   @id @default(uuid())
+  startTime DateTime @map("start_time") @db.Timestamptz()
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  userId    String  @map("user_id") @db.VarChar(255) @unique
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String? @map("project_id")
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("ongoing_timers")
+}
