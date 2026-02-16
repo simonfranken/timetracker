@@ -155,26 +155,28 @@ export function StatisticsPage() {
 
       {/* Total Hours Display */}
       <div className="card bg-gradient-to-br from-primary-50 to-primary-100 border-primary-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-primary-700">
-              Total Working Time
-            </p>
-            <p className="text-4xl font-bold text-primary-900 mt-1">
-              {isLoading ? (
-                <span className="text-2xl">Loading...</span>
-              ) : (
-                formatDuration(statistics?.totalSeconds || 0)
-              )}
+        <div className="flex items-center">
+          <div className="flex flex-col grow">
+            <div>
+              <p className="text-sm font-medium text-primary-700">
+                Total Working Time
+              </p>
+              <p className="text-4xl font-bold text-primary-900 mt-1">
+                {isLoading ? (
+                  <span className="text-2xl">Loading...</span>
+                ) : (
+                  formatDuration(statistics?.totalSeconds || 0)
+                )}
+              </p>
+            </div>
+            <p className="mt-2 text-sm text-primary-600">
+              {statistics?.entryCount || 0} time entries
             </p>
           </div>
           <div className="p-4 bg-primary-200 rounded-full">
             <Clock className="h-8 w-8 text-primary-700" />
           </div>
         </div>
-        <p className="mt-2 text-sm text-primary-600">
-          {statistics?.entryCount || 0} time entries
-        </p>
       </div>
 
       {/* Breakdown by Project */}
