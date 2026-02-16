@@ -4,7 +4,7 @@ import { useTimeEntries } from "@/hooks/useTimeEntries";
 import {
   formatDate,
   formatDurationFromDates,
-  formatDuration,
+  formatDurationHoursMinutes,
 } from "@/utils/dateUtils";
 import { startOfDay, endOfDay } from "date-fns";
 
@@ -40,7 +40,7 @@ export function DashboardPage() {
         <StatCard
           icon={Clock}
           label="Today"
-          value={formatDuration(totalTodaySeconds)}
+          value={formatDurationHoursMinutes(totalTodaySeconds)}
           color="blue"
         />
         <StatCard

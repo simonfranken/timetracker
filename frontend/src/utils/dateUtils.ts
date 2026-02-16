@@ -30,6 +30,19 @@ export function formatDuration(totalSeconds: number): string {
   return parts.join(":");
 }
 
+export function formatDurationHoursMinutes(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  if (hours === 0) {
+    return `${minutes}m`;
+  }
+  if (minutes === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${minutes}m`;
+}
+
 export function calculateDuration(startTime: string, endTime: string): number {
   const start = parseISO(startTime);
   const end = parseISO(endTime);
