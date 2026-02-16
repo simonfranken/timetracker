@@ -56,6 +56,41 @@ export interface TimeEntryFilters {
   limit?: number;
 }
 
+export interface StatisticsFilters {
+  startDate?: string;
+  endDate?: string;
+  projectId?: string;
+  clientId?: string;
+}
+
+export interface ProjectStatistics {
+  projectId: string;
+  projectName: string;
+  projectColor: string | null;
+  totalSeconds: number;
+  entryCount: number;
+}
+
+export interface ClientStatistics {
+  clientId: string;
+  clientName: string;
+  totalSeconds: number;
+  entryCount: number;
+}
+
+export interface TimeStatistics {
+  totalSeconds: number;
+  entryCount: number;
+  byProject: ProjectStatistics[];
+  byClient: ClientStatistics[];
+  filters: {
+    startDate: string | null;
+    endDate: string | null;
+    projectId: string | null;
+    clientId: string | null;
+  };
+}
+
 export interface PaginatedTimeEntries {
   entries: TimeEntry[];
   pagination: {

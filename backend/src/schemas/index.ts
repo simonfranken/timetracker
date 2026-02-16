@@ -51,6 +51,13 @@ export const TimeEntryFiltersSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 
+export const StatisticsFiltersSchema = z.object({
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  projectId: z.string().uuid().optional(),
+  clientId: z.string().uuid().optional(),
+});
+
 export const StartTimerSchema = z.object({
   projectId: z.string().uuid().optional(),
 });

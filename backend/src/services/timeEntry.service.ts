@@ -1,9 +1,157 @@
-import { prisma } from '../prisma/client';
-import type { CreateTimeEntryInput, UpdateTimeEntryInput, TimeEntryFilters } from '../types';
+import { prisma } from "../prisma/client";
+import type {
+  CreateTimeEntryInput,
+  UpdateTimeEntryInput,
+  TimeEntryFilters,
+  StatisticsFilters,
+} from "../types";
 
 export class TimeEntryService {
+  async getStatistics(userId: string, filters: StatisticsFilters = {}) {
+    const { startDate, endDate, projectId, clientId } = filters;
+    const where: {
+      userId: string;
+      startTime?: { gte?: Date; lte?: Date };
+      projectId?: string;
+      project?: { clientId?: string };
+    } = { userId };
+
+    if (startDate || endDate) {
+      where.startTime = {};
+      if (startDate) where.startTime.gte = new Date(startDate);
+      if (endDate) where.startTime.lte = new Date(endDate);
+    }
+
+    if (projectId) {
+      where.projectId = projectId;
+    }
+
+    if (clientId) {
+      where.project = { clientId };
+    }
+
+    const entries = await prisma.timeEntry.findMany({
+      where,
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            client: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Calculate total duration in seconds
+    const totalSeconds = entries.reduce((total, entry) => {
+      const startTime = new Date(entry.startTime);
+      const endTime = new Date(entry.endTime);
+      return (
+        total + Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
+      );
+    }, 0);
+
+    // Calculate by project
+    const byProject = entries.reduce(
+      (acc, entry) => {
+        const projectId = entry.project.id;
+        const projectName = entry.project.name;
+        const projectColor = entry.project.color;
+        const startTime = new Date(entry.startTime);
+        const endTime = new Date(entry.endTime);
+        const duration = Math.floor(
+          (endTime.getTime() - startTime.getTime()) / 1000,
+        );
+
+        if (!acc[projectId]) {
+          acc[projectId] = {
+            projectId,
+            projectName,
+            projectColor,
+            totalSeconds: 0,
+            entryCount: 0,
+          };
+        }
+        acc[projectId].totalSeconds += duration;
+        acc[projectId].entryCount += 1;
+        return acc;
+      },
+      {} as Record<
+        string,
+        {
+          projectId: string;
+          projectName: string;
+          projectColor: string | null;
+          totalSeconds: number;
+          entryCount: number;
+        }
+      >,
+    );
+
+    // Calculate by client
+    const byClient = entries.reduce(
+      (acc, entry) => {
+        const clientId = entry.project.client.id;
+        const clientName = entry.project.client.name;
+        const startTime = new Date(entry.startTime);
+        const endTime = new Date(entry.endTime);
+        const duration = Math.floor(
+          (endTime.getTime() - startTime.getTime()) / 1000,
+        );
+
+        if (!acc[clientId]) {
+          acc[clientId] = {
+            clientId,
+            clientName,
+            totalSeconds: 0,
+            entryCount: 0,
+          };
+        }
+        acc[clientId].totalSeconds += duration;
+        acc[clientId].entryCount += 1;
+        return acc;
+      },
+      {} as Record<
+        string,
+        {
+          clientId: string;
+          clientName: string;
+          totalSeconds: number;
+          entryCount: number;
+        }
+      >,
+    );
+
+    return {
+      totalSeconds,
+      entryCount: entries.length,
+      byProject: Object.values(byProject),
+      byClient: Object.values(byClient),
+      filters: {
+        startDate: startDate || null,
+        endDate: endDate || null,
+        projectId: projectId || null,
+        clientId: clientId || null,
+      },
+    };
+  }
+
   async findAll(userId: string, filters: TimeEntryFilters = {}) {
-    const { startDate, endDate, projectId, clientId, page = 1, limit = 50 } = filters;
+    const {
+      startDate,
+      endDate,
+      projectId,
+      clientId,
+      page = 1,
+      limit = 50,
+    } = filters;
     const skip = (page - 1) * limit;
 
     const where: {
@@ -30,7 +178,7 @@ export class TimeEntryService {
     const [entries, total] = await Promise.all([
       prisma.timeEntry.findMany({
         where,
-        orderBy: { startTime: 'desc' },
+        orderBy: { startTime: "desc" },
         skip,
         take: limit,
         include: {
@@ -90,7 +238,9 @@ export class TimeEntryService {
 
     // Validate end time is after start time
     if (endTime <= startTime) {
-      const error = new Error('End time must be after start time') as Error & { statusCode: number };
+      const error = new Error("End time must be after start time") as Error & {
+        statusCode: number;
+      };
       error.statusCode = 400;
       throw error;
     }
@@ -101,15 +251,23 @@ export class TimeEntryService {
     });
 
     if (!project) {
-      const error = new Error('Project not found') as Error & { statusCode: number };
+      const error = new Error("Project not found") as Error & {
+        statusCode: number;
+      };
       error.statusCode = 404;
       throw error;
     }
 
     // Check for overlapping entries
-    const hasOverlap = await this.hasOverlappingEntries(userId, startTime, endTime);
+    const hasOverlap = await this.hasOverlappingEntries(
+      userId,
+      startTime,
+      endTime,
+    );
     if (hasOverlap) {
-      const error = new Error('This time entry overlaps with an existing entry') as Error & { statusCode: number };
+      const error = new Error(
+        "This time entry overlaps with an existing entry",
+      ) as Error & { statusCode: number };
       error.statusCode = 400;
       throw error;
     }
@@ -143,17 +301,23 @@ export class TimeEntryService {
   async update(id: string, userId: string, data: UpdateTimeEntryInput) {
     const entry = await this.findById(id, userId);
     if (!entry) {
-      const error = new Error('Time entry not found') as Error & { statusCode: number };
+      const error = new Error("Time entry not found") as Error & {
+        statusCode: number;
+      };
       error.statusCode = 404;
       throw error;
     }
 
-    const startTime = data.startTime ? new Date(data.startTime) : entry.startTime;
+    const startTime = data.startTime
+      ? new Date(data.startTime)
+      : entry.startTime;
     const endTime = data.endTime ? new Date(data.endTime) : entry.endTime;
 
     // Validate end time is after start time
     if (endTime <= startTime) {
-      const error = new Error('End time must be after start time') as Error & { statusCode: number };
+      const error = new Error("End time must be after start time") as Error & {
+        statusCode: number;
+      };
       error.statusCode = 400;
       throw error;
     }
@@ -165,16 +329,25 @@ export class TimeEntryService {
       });
 
       if (!project) {
-        const error = new Error('Project not found') as Error & { statusCode: number };
+        const error = new Error("Project not found") as Error & {
+          statusCode: number;
+        };
         error.statusCode = 404;
         throw error;
       }
     }
 
     // Check for overlapping entries (excluding this entry)
-    const hasOverlap = await this.hasOverlappingEntries(userId, startTime, endTime, id);
+    const hasOverlap = await this.hasOverlappingEntries(
+      userId,
+      startTime,
+      endTime,
+      id,
+    );
     if (hasOverlap) {
-      const error = new Error('This time entry overlaps with an existing entry') as Error & { statusCode: number };
+      const error = new Error(
+        "This time entry overlaps with an existing entry",
+      ) as Error & { statusCode: number };
       error.statusCode = 400;
       throw error;
     }
@@ -208,7 +381,9 @@ export class TimeEntryService {
   async delete(id: string, userId: string) {
     const entry = await this.findById(id, userId);
     if (!entry) {
-      const error = new Error('Time entry not found') as Error & { statusCode: number };
+      const error = new Error("Time entry not found") as Error & {
+        statusCode: number;
+      };
       error.statusCode = 404;
       throw error;
     }
@@ -222,7 +397,7 @@ export class TimeEntryService {
     userId: string,
     startTime: Date,
     endTime: Date,
-    excludeId?: string
+    excludeId?: string,
   ): Promise<boolean> {
     const where: {
       userId: string;

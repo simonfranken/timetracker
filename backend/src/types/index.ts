@@ -57,6 +57,13 @@ export interface TimeEntryFilters {
   limit?: number;
 }
 
+export interface StatisticsFilters {
+  startDate?: string;
+  endDate?: string;
+  projectId?: string;
+  clientId?: string;
+}
+
 export interface StartTimerInput {
   projectId?: string;
 }

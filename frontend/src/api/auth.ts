@@ -1,7 +1,8 @@
 import axios from "axios";
 import type { User } from "@/types";
 
-const AUTH_BASE = import.meta.env.VITE_API_URL + "/auth";
+const AUTH_BASE =
+  (import.meta.env.VITE_API_URL || `${window.location.origin}/api`) + "/auth";
 
 export const authApi = {
   login: (): void => {

@@ -9,6 +9,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { TimeEntriesPage } from "./pages/TimeEntriesPage";
 import { ClientsPage } from "./pages/ClientsPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
+import { StatisticsPage } from "./pages/StatisticsPage";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
           <Route path="time-entries" element={<TimeEntriesPage />} />
           <Route path="clients" element={<ClientsPage />} />
           <Route path="projects" element={<ProjectsPage />} />
+          <Route path="statistics" element={<StatisticsPage />} />
         </Route>
       </Routes>
     </AuthProvider>

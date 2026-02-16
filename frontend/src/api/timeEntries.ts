@@ -5,11 +5,20 @@ import type {
   CreateTimeEntryInput,
   UpdateTimeEntryInput,
   TimeEntryFilters,
+  TimeStatistics,
+  StatisticsFilters,
 } from '@/types';
 
 export const timeEntriesApi = {
   getAll: async (filters?: TimeEntryFilters): Promise<PaginatedTimeEntries> => {
     const { data } = await apiClient.get<PaginatedTimeEntries>('/time-entries', {
+      params: filters,
+    });
+    return data;
+  },
+
+  getStatistics: async (filters?: StatisticsFilters): Promise<TimeStatistics> => {
+    const { data } = await apiClient.get<TimeStatistics>('/time-entries/statistics', {
       params: filters,
     });
     return data;

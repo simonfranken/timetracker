@@ -1,19 +1,24 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { timeEntriesApi } from '@/api/timeEntries';
-import type { CreateTimeEntryInput, UpdateTimeEntryInput, TimeEntryFilters } from '@/types';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { timeEntriesApi } from "@/api/timeEntries";
+import type {
+  CreateTimeEntryInput,
+  UpdateTimeEntryInput,
+  TimeEntryFilters,
+  StatisticsFilters,
+} from "@/types";
 
 export function useTimeEntries(filters?: TimeEntryFilters) {
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['timeEntries', filters],
+    queryKey: ["timeEntries", filters],
     queryFn: () => timeEntriesApi.getAll(filters),
   });
 
   const createTimeEntry = useMutation({
     mutationFn: (input: CreateTimeEntryInput) => timeEntriesApi.create(input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      queryClient.invalidateQueries({ queryKey: ["timeEntries"] });
     },
   });
 
@@ -21,14 +26,14 @@ export function useTimeEntries(filters?: TimeEntryFilters) {
     mutationFn: ({ id, input }: { id: string; input: UpdateTimeEntryInput }) =>
       timeEntriesApi.update(id, input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      queryClient.invalidateQueries({ queryKey: ["timeEntries"] });
     },
   });
 
   const deleteTimeEntry = useMutation({
     mutationFn: (id: string) => timeEntriesApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      queryClient.invalidateQueries({ queryKey: ["timeEntries"] });
     },
   });
 
@@ -39,5 +44,18 @@ export function useTimeEntries(filters?: TimeEntryFilters) {
     createTimeEntry,
     updateTimeEntry,
     deleteTimeEntry,
+  };
+}
+
+export function useStatistics(filters?: StatisticsFilters) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["statistics", filters],
+    queryFn: () => timeEntriesApi.getStatistics(filters),
+  });
+
+  return {
+    data,
+    isLoading,
+    error,
   };
 }

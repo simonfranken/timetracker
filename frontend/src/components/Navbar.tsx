@@ -1,15 +1,23 @@
-import { NavLink } from 'react-router-dom';
-import { Clock, List, Briefcase, FolderOpen, LogOut } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { NavLink } from "react-router-dom";
+import {
+  Clock,
+  List,
+  Briefcase,
+  FolderOpen,
+  BarChart3,
+  LogOut,
+} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Navbar() {
   const { user, logout } = useAuth();
 
   const navItems = [
-    { to: '/dashboard', label: 'Dashboard', icon: Clock },
-    { to: '/time-entries', label: 'Time Entries', icon: List },
-    { to: '/clients', label: 'Clients', icon: Briefcase },
-    { to: '/projects', label: 'Projects', icon: FolderOpen },
+    { to: "/dashboard", label: "Dashboard", icon: Clock },
+    { to: "/time-entries", label: "Time Entries", icon: List },
+    { to: "/statistics", label: "Statistics", icon: BarChart3 },
+    { to: "/clients", label: "Clients", icon: Briefcase },
+    { to: "/projects", label: "Projects", icon: FolderOpen },
   ];
 
   return (
@@ -19,7 +27,9 @@ export function Navbar() {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Clock className="h-8 w-8 text-primary-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">TimeTracker</span>
+              <span className="ml-2 text-xl font-bold text-gray-900">
+                TimeTracker
+              </span>
             </div>
             <div className="hidden sm:ml-8 sm:flex sm:space-x-4">
               {navItems.map((item) => (
@@ -29,8 +39,8 @@ export function Navbar() {
                   className={({ isActive }) =>
                     `inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                       isActive
-                        ? 'text-primary-600 bg-primary-50'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        ? "text-primary-600 bg-primary-50"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     }`
                   }
                 >
@@ -63,7 +73,7 @@ export function Navbar() {
               to={item.to}
               className={({ isActive }) =>
                 `flex flex-col items-center p-2 text-xs font-medium rounded-md ${
-                  isActive ? 'text-primary-600' : 'text-gray-600'
+                  isActive ? "text-primary-600" : "text-gray-600"
                 }`
               }
             >
