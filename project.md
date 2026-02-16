@@ -1,0 +1,221 @@
+# Timetracker
+
+## Overview
+
+A multi-user web application for tracking time spent working on projects. Users authenticate via an external OIDC provider and manage their own clients, projects, and time entries.
+
+---
+
+## Technical Requirements
+
+### Authentication
+
+- **OIDC Provider**: Configurable via:
+  - Well-known endpoint (e.g., `https://provider.com/.well-known/openid-configuration`)
+  - Client ID
+  - PKCE flow (public client, no client secret required)
+- **User Information**: Username and email are sourced from the OIDC provider claims
+- **No local user management**: The application does not store user credentials or manage passwords
+
+### Data Persistence
+
+- **Database**: Relational database (e.g., PostgreSQL, MySQL)
+- **Time Format**: DateTime with timezone offset (e.g., `2024-01-15T09:00:00+01:00`)
+- **Display**: Times are converted to the user's local timezone for display
+
+### Validation Rules
+
+- End time must be after start time
+- No overlapping time entries for the same user
+
+---
+
+## Data Model
+
+### Entities
+
+| Entity           | Description                                   | Ownership                                          |
+| ---------------- | --------------------------------------------- | -------------------------------------------------- |
+| **Client**       | A client/customer the user works for          | User                                               |
+| **Project**      | A project belonging to a client               | User, belongs to one Client                        |
+| **TimeEntry**    | A completed time tracking record              | User (explicit), belongs to one Project            |
+| **OngoingTimer** | An active timer while tracking is in progress | User (explicit), belongs to one Project (optional) |
+
+### Relationships
+
+```
+User
+  ├── Client (one-to-many)
+  │     └── Project (one-to-many)
+  │           └── TimeEntry (one-to-many, explicit user reference)
+  │
+  └── OngoingTimer (zero-or-one, explicit user reference)
+```
+
+**Important**: Both `TimeEntry` and `OngoingTimer` have explicit references to the user who created them. This is distinct from the project's ownership and is required for future extensibility (see Future Extensibility section).
+
+---
+
+## Functional Requirements
+
+### 1. Multi-User Support
+
+- The application supports multiple concurrent users
+- Each user sees and manages only their own data (clients, projects, entries)
+- Users authenticate via an external OIDC provider
+
+---
+
+### 2. Client & Project Management
+
+- Users can create, edit, and delete **Clients**
+- Users can create, edit, and delete **Projects**
+- Each project must be associated with exactly one client
+- There is no admin user — all users manage their own data
+
+---
+
+### 3. Start / Stop Time Tracking
+
+#### Starting a Timer
+
+- User clicks a **Start** button in the web interface
+- An `OngoingTimer` entity is immediately saved to the database with:
+  - Start time (current timestamp)
+  - User reference (explicit, required)
+  - Project reference (initially `null`, can be added later)
+- The UI displays a **live timer** showing elapsed time since start
+
+#### While Timer is Running
+
+- The timer remains active even if the user closes the browser
+- User can **add/select a project** at any time while the timer is running
+
+#### Stopping the Timer
+
+- User clicks a **Stop** button
+- **Two scenarios**:
+
+  | Scenario                 | Behavior                                                           |
+  | ------------------------ | ------------------------------------------------------------------ |
+  | Project already selected | `OngoingTimer` is converted to a `TimeEntry` and saved immediately |
+  | No project selected      | UI prompts user to select a project before saving the entry        |
+
+- The final `TimeEntry` contains:
+  - Start time
+  - End time
+  - Project reference
+  - User reference (explicit, required)
+
+---
+
+### 4. Edit Time Tracking Entry
+
+- User can view tracked entries in a **list view** or **calendar view**
+- User can **select an entry** and edit:
+  - Start time
+  - End time
+  - Project (change to a different project)
+- User can **delete** an entry
+
+---
+
+### 5. Adding Entries Manually
+
+- User can add a time entry manually using a form
+- Required fields:
+  - Start time
+  - End time
+  - Project
+- The entry is validated against overlap rules before saving
+
+---
+
+## API Endpoints (Suggested)
+
+### Authentication
+
+- `GET /auth/login` — Initiate OIDC login flow
+- `GET /auth/callback` — OIDC callback handler
+- `POST /auth/logout` — End session
+
+### Clients
+
+- `GET /api/clients` — List user's clients
+- `POST /api/clients` — Create client
+- `PUT /api/clients/{id}` — Update client
+- `DELETE /api/clients/{id}` — Delete client
+
+### Projects
+
+- `GET /api/projects` — List user's projects (optionally filter by client)
+- `POST /api/projects` — Create project
+- `PUT /api/projects/{id}` — Update project
+- `DELETE /api/projects/{id}` — Delete project
+
+### Time Entries
+
+- `GET /api/time-entries` — List user's entries (with pagination, date range filter)
+- `POST /api/time-entries` — Create entry manually
+- `PUT /api/time-entries/{id}` — Update entry
+- `DELETE /api/time-entries/{id}` — Delete entry
+
+### Timer
+
+- `POST /api/timer/start` — Start timer (creates OngoingTimer)
+- `PUT /api/timer` — Update ongoing timer (e.g., set project)
+- `POST /api/timer/stop` — Stop timer (converts to TimeEntry)
+- `GET /api/timer` — Get current ongoing timer (if any)
+
+---
+
+## UI Requirements
+
+### Timer Widget
+
+- Always visible when user is logged in
+- Shows "Start" button when no timer is running
+- Shows live elapsed time (HH:MM:SS) and "Stop" button when running
+- Allows project selection while running
+
+### Views
+
+- **Dashboard**: Overview with active timer widget and recent entries
+- **Time Entries**: List/calendar view of all entries with filters (date range, client, project)
+- **Clients & Projects**: Management interface for clients and projects
+
+---
+
+## Future Extensibility
+
+The following features are planned for future development. Consider these when designing the architecture:
+
+### Shared Projects
+
+- Users will be able to track time for **projects belonging to other users**
+- **Rationale**: `TimeEntry` already has an explicit user reference independent of the project's owner
+- **Example**: User A can log time on User B's project, but the entry is clearly associated with User A
+- **Requirements**:
+  - Authorization checks must verify that a user has access to a project before allowing time tracking
+  - UI should distinguish between "My Projects" and "Shared With Me" projects
+  - Reporting/filtering by project owner vs. entry owner
+
+---
+
+## Security Considerations
+
+- All API endpoints require authentication (except auth routes)
+- Users can only access/modify their own data
+- OIDC PKCE flow for secure authentication without client secret
+- Input validation on all endpoints
+- Database-level constraints to enforce:
+  - End time > Start time
+  - No overlapping entries per user
+
+---
+
+## Non-Functional Requirements
+
+- Responsive web interface (works on desktop and mobile browsers)
+- Timer updates in real-time (e.g., every second)
+- Graceful handling of timer across browser sessions
