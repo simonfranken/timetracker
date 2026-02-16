@@ -41,8 +41,8 @@ async function main() {
       saveUninitialized: false,
       name: "sessionId",
       cookie: {
-        secure: false,
-        httpOnly: false,
+        secure: config.nodeEnv === "production",
+        httpOnly: true,
         maxAge: config.session.maxAge,
         sameSite: "lax",
       },

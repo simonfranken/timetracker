@@ -1,6 +1,6 @@
-import { prisma } from '../prisma/client';
-
-import type { CreateProjectInput, UpdateProjectInput } from '../types';
+import { prisma } from "../prisma/client";
+import { NotFoundError, BadRequestError } from "../errors/AppError";
+import type { CreateProjectInput, UpdateProjectInput } from "../types";
 
 export class ProjectService {
   async findAll(userId: string, clientId?: string) {
@@ -9,7 +9,7 @@ export class ProjectService {
         userId,
         ...(clientId && { clientId }),
       },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
       include: {
         client: {
           select: {
@@ -40,11 +40,9 @@ export class ProjectService {
     const client = await prisma.client.findFirst({
       where: { id: data.clientId, userId },
     });
-    
+
     if (!client) {
-      const error = new Error('Client not found or does not belong to user') as Error & { statusCode: number };
-      error.statusCode = 400;
-      throw error;
+      throw new BadRequestError("Client not found or does not belong to user");
     }
 
     return prisma.project.create({
@@ -69,9 +67,7 @@ export class ProjectService {
   async update(id: string, userId: string, data: UpdateProjectInput) {
     const project = await this.findById(id, userId);
     if (!project) {
-      const error = new Error('Project not found') as Error & { statusCode: number };
-      error.statusCode = 404;
-      throw error;
+      throw new NotFoundError("Project not found");
     }
 
     // If clientId is being updated, verify it belongs to the user
@@ -79,11 +75,11 @@ export class ProjectService {
       const client = await prisma.client.findFirst({
         where: { id: data.clientId, userId },
       });
-      
+
       if (!client) {
-        const error = new Error('Client not found or does not belong to user') as Error & { statusCode: number };
-        error.statusCode = 400;
-        throw error;
+        throw new BadRequestError(
+          "Client not found or does not belong to user",
+        );
       }
     }
 
@@ -109,9 +105,7 @@ export class ProjectService {
   async delete(id: string, userId: string) {
     const project = await this.findById(id, userId);
     if (!project) {
-      const error = new Error('Project not found') as Error & { statusCode: number };
-      error.statusCode = 404;
-      throw error;
+      throw new NotFoundError("Project not found");
     }
 
     await prisma.project.delete({

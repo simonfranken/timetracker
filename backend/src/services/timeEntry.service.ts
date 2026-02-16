@@ -1,4 +1,9 @@
 import { prisma } from "../prisma/client";
+import {
+  NotFoundError,
+  BadRequestError,
+  ConflictError,
+} from "../errors/AppError";
 import type {
   CreateTimeEntryInput,
   UpdateTimeEntryInput,
@@ -238,11 +243,7 @@ export class TimeEntryService {
 
     // Validate end time is after start time
     if (endTime <= startTime) {
-      const error = new Error("End time must be after start time") as Error & {
-        statusCode: number;
-      };
-      error.statusCode = 400;
-      throw error;
+      throw new BadRequestError("End time must be after start time");
     }
 
     // Verify the project belongs to the user
@@ -251,11 +252,7 @@ export class TimeEntryService {
     });
 
     if (!project) {
-      const error = new Error("Project not found") as Error & {
-        statusCode: number;
-      };
-      error.statusCode = 404;
-      throw error;
+      throw new NotFoundError("Project not found");
     }
 
     // Check for overlapping entries
@@ -265,11 +262,9 @@ export class TimeEntryService {
       endTime,
     );
     if (hasOverlap) {
-      const error = new Error(
+      throw new ConflictError(
         "This time entry overlaps with an existing entry",
-      ) as Error & { statusCode: number };
-      error.statusCode = 400;
-      throw error;
+      );
     }
 
     return prisma.timeEntry.create({
@@ -301,11 +296,7 @@ export class TimeEntryService {
   async update(id: string, userId: string, data: UpdateTimeEntryInput) {
     const entry = await this.findById(id, userId);
     if (!entry) {
-      const error = new Error("Time entry not found") as Error & {
-        statusCode: number;
-      };
-      error.statusCode = 404;
-      throw error;
+      throw new NotFoundError("Time entry not found");
     }
 
     const startTime = data.startTime
@@ -315,11 +306,7 @@ export class TimeEntryService {
 
     // Validate end time is after start time
     if (endTime <= startTime) {
-      const error = new Error("End time must be after start time") as Error & {
-        statusCode: number;
-      };
-      error.statusCode = 400;
-      throw error;
+      throw new BadRequestError("End time must be after start time");
     }
 
     // If project changed, verify it belongs to the user
@@ -329,11 +316,7 @@ export class TimeEntryService {
       });
 
       if (!project) {
-        const error = new Error("Project not found") as Error & {
-          statusCode: number;
-        };
-        error.statusCode = 404;
-        throw error;
+        throw new NotFoundError("Project not found");
       }
     }
 
@@ -345,11 +328,9 @@ export class TimeEntryService {
       id,
     );
     if (hasOverlap) {
-      const error = new Error(
+      throw new ConflictError(
         "This time entry overlaps with an existing entry",
-      ) as Error & { statusCode: number };
-      error.statusCode = 400;
-      throw error;
+      );
     }
 
     return prisma.timeEntry.update({
@@ -381,11 +362,7 @@ export class TimeEntryService {
   async delete(id: string, userId: string) {
     const entry = await this.findById(id, userId);
     if (!entry) {
-      const error = new Error("Time entry not found") as Error & {
-        statusCode: number;
-      };
-      error.statusCode = 404;
-      throw error;
+      throw new NotFoundError("Time entry not found");
     }
 
     await prisma.timeEntry.delete({

@@ -4,6 +4,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -24,9 +25,8 @@ const TimerContext = createContext<TimerContextType | undefined>(undefined);
 export function TimerProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [elapsedInterval, setElapsedInterval] = useState<ReturnType<
-    typeof setInterval
-  > | null>(null);
+  // Use ref for interval ID to avoid stale closure issues
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: ongoingTimer, isLoading } = useQuery({
     queryKey: ["ongoingTimer"],
@@ -42,22 +42,28 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       const initialElapsed = Math.floor((now - startTime) / 1000);
       setElapsedSeconds(initialElapsed);
 
+      // Clear any existing interval first
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+
       // Start interval to update elapsed time
-      const interval = setInterval(() => {
+      intervalRef.current = setInterval(() => {
         setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
       }, 1000);
-      setElapsedInterval(interval);
     } else {
       setElapsedSeconds(0);
-      if (elapsedInterval) {
-        clearInterval(elapsedInterval);
-        setElapsedInterval(null);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     }
 
+    // Cleanup on unmount or when ongoingTimer changes
     return () => {
-      if (elapsedInterval) {
-        clearInterval(elapsedInterval);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [ongoingTimer]);
