@@ -62,11 +62,11 @@ router.get("/callback", async (req, res) => {
     delete req.session.oidc;
 
     // Redirect to frontend
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = process.env.APP_URL || "http://localhost:5173";
     res.redirect(`${frontendUrl}/auth/callback?success=true`);
   } catch (error) {
     console.error("Callback error:", error);
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = process.env.APP_URL || "http://localhost:5173";
     res.redirect(`${frontendUrl}/auth/callback?error=authentication_failed`);
   }
 });

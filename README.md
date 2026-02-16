@@ -86,36 +86,41 @@ SESSION_SECRET="your-secure-session-secret-min-32-chars"
 # Server
 PORT=3001
 NODE_ENV=development
-FRONTEND_URL="http://localhost:5173"
+APP_URL="http://localhost:5173"
 ```
 
 ## API Endpoints
 
 ### Authentication
+
 - `GET /auth/login` - Initiate OIDC login
 - `GET /auth/callback` - OIDC callback
 - `POST /auth/logout` - End session
 - `GET /auth/me` - Get current user
 
 ### Clients
+
 - `GET /api/clients` - List clients
 - `POST /api/clients` - Create client
 - `PUT /api/clients/:id` - Update client
 - `DELETE /api/clients/:id` - Delete client
 
 ### Projects
+
 - `GET /api/projects` - List projects
 - `POST /api/projects` - Create project
 - `PUT /api/projects/:id` - Update project
 - `DELETE /api/projects/:id` - Delete project
 
 ### Time Entries
+
 - `GET /api/time-entries` - List entries (with filters/pagination)
 - `POST /api/time-entries` - Create entry
 - `PUT /api/time-entries/:id` - Update entry
 - `DELETE /api/time-entries/:id` - Delete entry
 
 ### Timer
+
 - `GET /api/timer` - Get ongoing timer
 - `POST /api/timer/start` - Start timer
 - `PUT /api/timer` - Update timer (set project)
@@ -134,6 +139,7 @@ User (oidc sub)
 ## Technology Stack
 
 **Backend:**
+
 - Node.js + Express
 - TypeScript
 - Prisma ORM
@@ -141,6 +147,7 @@ User (oidc sub)
 - OpenID Client
 
 **Frontend:**
+
 - React 18
 - TypeScript
 - TanStack Query
