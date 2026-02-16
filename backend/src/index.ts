@@ -55,11 +55,11 @@ async function main() {
   });
 
   // Routes
-  app.use("/api/auth", authRoutes);
-  app.use("/api/clients", clientRoutes);
-  app.use("/api/projects", projectRoutes);
-  app.use("/api/time-entries", timeEntryRoutes);
-  app.use("/api/timer", timerRoutes);
+  app.use("/auth", authRoutes);
+  app.use("/clients", clientRoutes);
+  app.use("/projects", projectRoutes);
+  app.use("/time-entries", timeEntryRoutes);
+  app.use("/timer", timerRoutes);
 
   // Error handling
   app.use(notFoundHandler);
