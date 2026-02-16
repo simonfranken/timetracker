@@ -1,14 +1,7 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  type ReactNode,
-} from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { authApi } from '@/api/auth';
-import type { User } from '@/types';
+import { createContext, useContext, useCallback, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { authApi } from "@/api/auth";
+import type { User } from "@/types";
 
 interface AuthContextType {
   user: User | null;
@@ -23,9 +16,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  
+
   const { data: user, isLoading } = useQuery({
-    queryKey: ['currentUser'],
+    queryKey: ["currentUser"],
     queryFn: authApi.getCurrentUser,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -36,12 +29,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await authApi.logout();
-    queryClient.setQueryData(['currentUser'], null);
+    queryClient.setQueryData(["currentUser"], null);
     queryClient.clear();
   }, [queryClient]);
 
   const refetchUser = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+    await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
   }, [queryClient]);
 
   return (
@@ -63,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

@@ -1,18 +1,18 @@
-import { format, parseISO, differenceInSeconds, formatDuration as dateFnsFormatDuration } from 'date-fns';
+import { format, parseISO, differenceInSeconds } from "date-fns";
 
 export function formatDate(date: string | Date): string {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return format(d, 'MMM d, yyyy');
+  const d = typeof date === "string" ? parseISO(date) : date;
+  return format(d, "MMM d, yyyy");
 }
 
 export function formatTime(date: string | Date): string {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return format(d, 'h:mm a');
+  const d = typeof date === "string" ? parseISO(date) : date;
+  return format(d, "h:mm a");
 }
 
 export function formatDateTime(date: string | Date): string {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return format(d, 'MMM d, yyyy h:mm a');
+  const d = typeof date === "string" ? parseISO(date) : date;
+  return format(d, "MMM d, yyyy h:mm a");
 }
 
 export function formatDuration(totalSeconds: number): string {
@@ -22,12 +22,12 @@ export function formatDuration(totalSeconds: number): string {
 
   const parts = [];
   if (hours > 0) {
-    parts.push(hours.toString().padStart(2, '0'));
+    parts.push(hours.toString().padStart(2, "0"));
   }
-  parts.push(minutes.toString().padStart(2, '0'));
-  parts.push(seconds.toString().padStart(2, '0'));
+  parts.push(minutes.toString().padStart(2, "0"));
+  parts.push(seconds.toString().padStart(2, "0"));
 
-  return parts.join(':');
+  return parts.join(":");
 }
 
 export function calculateDuration(startTime: string, endTime: string): number {
@@ -36,14 +36,19 @@ export function calculateDuration(startTime: string, endTime: string): number {
   return differenceInSeconds(end, start);
 }
 
-export function formatDurationFromDates(startTime: string, endTime: string): string {
+export function formatDurationFromDates(
+  startTime: string,
+  endTime: string,
+): string {
   const seconds = calculateDuration(startTime, endTime);
   return formatDuration(seconds);
 }
 
 export function getLocalISOString(date: Date = new Date()): string {
   const timezoneOffset = date.getTimezoneOffset() * 60000;
-  const localISOTime = new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+  const localISOTime = new Date(date.getTime() - timezoneOffset)
+    .toISOString()
+    .slice(0, 16);
   return localISOTime;
 }
 

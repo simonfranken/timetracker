@@ -5,10 +5,10 @@ import {
   useEffect,
   useCallback,
   type ReactNode,
-} from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { timerApi } from '@/api/timer';
-import type { OngoingTimer, TimeEntry } from '@/types';
+} from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { timerApi } from "@/api/timer";
+import type { OngoingTimer, TimeEntry } from "@/types";
 
 interface TimerContextType {
   ongoingTimer: OngoingTimer | null;
@@ -24,10 +24,12 @@ const TimerContext = createContext<TimerContextType | undefined>(undefined);
 export function TimerProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [elapsedInterval, setElapsedInterval] = useState<NodeJS.Timeout | null>(null);
+  const [elapsedInterval, setElapsedInterval] = useState<ReturnType<
+    typeof setInterval
+  > | null>(null);
 
   const { data: ongoingTimer, isLoading } = useQuery({
-    queryKey: ['ongoingTimer'],
+    queryKey: ["ongoingTimer"],
     queryFn: timerApi.getOngoing,
     refetchInterval: 60000, // Refetch every minute to sync with server
   });
@@ -64,7 +66,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const startMutation = useMutation({
     mutationFn: timerApi.start,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ongoingTimer'] });
+      queryClient.invalidateQueries({ queryKey: ["ongoingTimer"] });
     },
   });
 
@@ -72,7 +74,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const updateMutation = useMutation({
     mutationFn: timerApi.update,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ongoingTimer'] });
+      queryClient.invalidateQueries({ queryKey: ["ongoingTimer"] });
     },
   });
 
@@ -80,8 +82,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const stopMutation = useMutation({
     mutationFn: timerApi.stop,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ongoingTimer'] });
-      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+      queryClient.invalidateQueries({ queryKey: ["ongoingTimer"] });
+      queryClient.invalidateQueries({ queryKey: ["timeEntries"] });
     },
   });
 
@@ -89,14 +91,14 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     async (projectId?: string) => {
       await startMutation.mutateAsync(projectId);
     },
-    [startMutation]
+    [startMutation],
   );
 
   const updateTimerProject = useCallback(
     async (projectId?: string | null) => {
       await updateMutation.mutateAsync(projectId);
     },
-    [updateMutation]
+    [updateMutation],
   );
 
   const stopTimer = useCallback(
@@ -108,7 +110,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
-    [stopMutation]
+    [stopMutation],
   );
 
   return (
@@ -130,7 +132,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 export function useTimer() {
   const context = useContext(TimerContext);
   if (context === undefined) {
-    throw new Error('useTimer must be used within a TimerProvider');
+    throw new Error("useTimer must be used within a TimerProvider");
   }
   return context;
 }

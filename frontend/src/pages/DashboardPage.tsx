@@ -1,8 +1,12 @@
-import { Link } from 'react-router-dom';
-import { Clock, Calendar, Briefcase, TrendingUp } from 'lucide-react';
-import { useTimeEntries } from '@/hooks/useTimeEntries';
-import { formatDate, formatDurationFromDates } from '@/utils/dateUtils';
-import { startOfDay, endOfDay, format as formatDateFns } from 'date-fns';
+import { Link } from "react-router-dom";
+import { Clock, Calendar, Briefcase, TrendingUp } from "lucide-react";
+import { useTimeEntries } from "@/hooks/useTimeEntries";
+import {
+  formatDate,
+  formatDurationFromDates,
+  formatDuration,
+} from "@/utils/dateUtils";
+import { startOfDay, endOfDay } from "date-fns";
 
 export function DashboardPage() {
   const today = new Date();
@@ -16,9 +20,10 @@ export function DashboardPage() {
     limit: 10,
   });
 
-  const totalTodaySeconds = todayEntries?.entries.reduce((total, entry) => {
-    return total + calculateDuration(entry.startTime, entry.endTime);
-  }, 0) || 0;
+  const totalTodaySeconds =
+    todayEntries?.entries.reduce((total, entry) => {
+      return total + calculateDuration(entry.startTime, entry.endTime);
+    }, 0) || 0;
 
   return (
     <div className="space-y-6">
@@ -41,19 +46,23 @@ export function DashboardPage() {
         <StatCard
           icon={Calendar}
           label="Entries Today"
-          value={todayEntries?.entries.length.toString() || '0'}
+          value={todayEntries?.entries.length.toString() || "0"}
           color="green"
         />
         <StatCard
           icon={Briefcase}
           label="Active Projects"
-          value={new Set(recentEntries?.entries.map(e => e.projectId)).size.toString() || '0'}
+          value={
+            new Set(
+              recentEntries?.entries.map((e) => e.projectId),
+            ).size.toString() || "0"
+          }
           color="purple"
         />
         <StatCard
           icon={TrendingUp}
           label="Total Entries"
-          value={recentEntries?.pagination.total.toString() || '0'}
+          value={recentEntries?.pagination.total.toString() || "0"}
           color="orange"
         />
       </div>
@@ -61,7 +70,9 @@ export function DashboardPage() {
       {/* Recent Activity */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Recent Activity
+          </h2>
           <Link
             to="/time-entries"
             className="text-sm text-primary-600 hover:text-primary-700"
@@ -97,7 +108,9 @@ export function DashboardPage() {
                       <div className="flex items-center">
                         <div
                           className="w-3 h-3 rounded-full mr-2"
-                          style={{ backgroundColor: entry.project.color || '#6b7280' }}
+                          style={{
+                            backgroundColor: entry.project.color || "#6b7280",
+                          }}
                         />
                         <div>
                           <div className="text-sm font-medium text-gray-900">
@@ -130,15 +143,15 @@ interface StatCardProps {
   icon: React.ElementType;
   label: string;
   value: string;
-  color: 'blue' | 'green' | 'purple' | 'orange';
+  color: "blue" | "green" | "purple" | "orange";
 }
 
 function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
   const colors = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    purple: 'bg-purple-50 text-purple-600',
-    orange: 'bg-orange-50 text-orange-600',
+    blue: "bg-blue-50 text-blue-600",
+    green: "bg-green-50 text-green-600",
+    purple: "bg-purple-50 text-purple-600",
+    orange: "bg-orange-50 text-orange-600",
   };
 
   return (
@@ -157,5 +170,7 @@ function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
 }
 
 function calculateDuration(startTime: string, endTime: string): number {
-  return Math.floor((new Date(endTime).getTime() - new Date(startTime).getTime()) / 1000);
+  return Math.floor(
+    (new Date(endTime).getTime() - new Date(startTime).getTime()) / 1000,
+  );
 }
