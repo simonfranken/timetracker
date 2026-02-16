@@ -1,0 +1,128 @@
+# Default values for timetracker
+
+# PostgreSQL Configuration
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+
+  auth:
+    username: timetracker
+    password: timetracker_password
+    database: timetracker
+
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 10Gi
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# Backend Configuration
+backend:
+  replicaCount: 1
+
+  image:
+    repository: git.simon-franken.de/simonfranken/timetracker-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 3001
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  # OIDC Configuration (REQUIRED - must be set)
+  oidc:
+    issuerUrl: ""
+    clientId: ""
+    redirectUri: ""
+
+  # Session configuration
+  session:
+    secret: "change-this-secret-in-production"
+
+  env:
+    nodeEnv: production
+    port: 3001
+
+# Frontend Configuration
+frontend:
+  replicaCount: 1
+
+  image:
+    repository: git.simon-franken.de/simonfranken/timetracker-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 80
+
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+  env:
+    apiUrl: "/api"
+
+# Ingress Configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+  hosts:
+    - host: timetracker.local
+      paths:
+        - path: /
+          pathType: Prefix
+          service: frontend
+          port: 80
+        - path: /api
+          pathType: Prefix
+          service: backend
+          port: 3001
+
+  tls:
+    enabled: false
+    secretName: timetracker-tls
+
+# Image pull secrets
+imagePullSecrets: []
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
