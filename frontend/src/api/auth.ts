@@ -1,7 +1,7 @@
-import axios from 'axios';
-import type { User } from '@/types';
+import axios from "axios";
+import type { User } from "@/types";
 
-const AUTH_BASE = '/auth';
+const AUTH_BASE = "/api/auth";
 
 export const authApi = {
   login: (): void => {
