@@ -1,0 +1,28 @@
+# Xcode
+build/
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+.swiftpm/
+*.dSYM.zip
+*.dSYM/
+
+# XcodeGen (regenerate after clean)
+# project.yml is the source of truth
+
+# CocoaPods
+# (not used, we use SPM)
+
+# Secrets
+*.env
+*.env.local
+
+# macOS
+.DS_Store
+
+# Build logs
+*.log
+
+# Temporary files
+*.tmp
