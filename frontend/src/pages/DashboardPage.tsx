@@ -5,6 +5,7 @@ import { ProjectColorDot } from "@/components/ProjectColorDot";
 import { StatCard } from "@/components/StatCard";
 import {
   formatDate,
+  formatTime,
   formatDurationFromDatesHoursMinutes,
   formatDurationHoursMinutes,
   calculateDuration,
@@ -120,9 +121,10 @@ export function DashboardPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(entry.startTime)}
-                    </td>
+                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                       <div>{formatDate(entry.startTime)}</div>
+                       <div className="text-xs text-gray-400">{formatTime(entry.startTime)} – {formatTime(entry.endTime)}</div>
+                     </td>
                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-mono">
                       {formatDurationFromDatesHoursMinutes(entry.startTime, entry.endTime)}
                     </td>

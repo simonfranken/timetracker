@@ -7,7 +7,7 @@ export function formatDate(date: string | Date): string {
 
 export function formatTime(date: string | Date): string {
   const d = typeof date === "string" ? parseISO(date) : date;
-  return format(d, "h:mm a");
+  return format(d, "HH:mm");
 }
 
 export function formatDateTime(date: string | Date): string {

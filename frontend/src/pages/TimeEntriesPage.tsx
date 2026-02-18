@@ -5,7 +5,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { Modal } from '@/components/Modal';
 import { Spinner } from '@/components/Spinner';
 import { ProjectColorDot } from '@/components/ProjectColorDot';
-import { formatDate, formatDurationFromDatesHoursMinutes, getLocalISOString, toISOTimezone } from '@/utils/dateUtils';
+import { formatDate, formatTime, formatDurationFromDatesHoursMinutes, getLocalISOString, toISOTimezone } from '@/utils/dateUtils';
 import type { TimeEntry, CreateTimeEntryInput, UpdateTimeEntryInput } from '@/types';
 
 export function TimeEntriesPage() {
@@ -117,7 +117,10 @@ export function TimeEntriesPage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {data?.entries.map((entry) => (
               <tr key={entry.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{formatDate(entry.startTime)}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                  <div>{formatDate(entry.startTime)}</div>
+                  <div className="text-xs text-gray-400">{formatTime(entry.startTime)} – {formatTime(entry.endTime)}</div>
+                </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center">
                     <ProjectColorDot color={entry.project.color} />
