@@ -14,6 +14,9 @@ export const config = {
   oidc: {
     issuerUrl: process.env.OIDC_ISSUER_URL || "",
     clientId: process.env.OIDC_CLIENT_ID || "",
+    redirectUri:
+      process.env.OIDC_REDIRECT_URI ||
+      "http://localhost:3001/api/auth/callback",
   },
 
   session: {

@@ -41,6 +41,7 @@ backend:
   oidc:
     issuerUrl: ""
     clientId: ""
+    redirectUri: ""
 
   # Session configuration
   session:
