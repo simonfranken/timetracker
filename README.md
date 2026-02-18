@@ -78,7 +78,6 @@ DATABASE_URL="postgresql://user:password@localhost:5432/timetracker"
 # OIDC Configuration
 OIDC_ISSUER_URL="https://your-oidc-provider.com"
 OIDC_CLIENT_ID="your-client-id"
-OIDC_REDIRECT_URI="http://localhost:3001/auth/callback"
 
 # Session
 SESSION_SECRET="your-secure-session-secret-min-32-chars"

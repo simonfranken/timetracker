@@ -54,8 +54,6 @@ spec:
               value: {{ .Values.backend.oidc.issuerUrl | quote }}
             - name: OIDC_CLIENT_ID
               value: {{ .Values.backend.oidc.clientId | quote }}
-            - name: OIDC_REDIRECT_URI
-              value: {{ .Values.backend.oidc.redirectUri | quote }}
             - name: SESSION_SECRET
               value: {{ .Values.backend.session.secret | quote }}
             - name: APP_URL

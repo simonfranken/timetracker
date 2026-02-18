@@ -23,7 +23,6 @@ services:
       DATABASE_URL: "postgresql://timetracker:timetracker_password@db:5432/timetracker"
       OIDC_ISSUER_URL: ${OIDC_ISSUER_URL}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
-      OIDC_REDIRECT_URI: "${API_URL}/auth/callback"
       SESSION_SECRET: ${SESSION_SECRET}
       PORT: 3001
       NODE_ENV: development
