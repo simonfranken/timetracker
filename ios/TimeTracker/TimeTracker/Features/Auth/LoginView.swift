@@ -69,7 +69,14 @@ struct LoginView: View {
         
         Task {
             let authService = AuthService.shared
-            await authService.login(presentationAnchor: nil)
+            do {
+                try await authService.login(presentationAnchor: nil)
+            } catch {
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = error.localizedDescription
+                }
+            }
         }
     }
     
