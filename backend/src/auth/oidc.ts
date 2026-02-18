@@ -37,15 +37,20 @@ export function getOIDCClient(): Client {
 export interface AuthSession {
   codeVerifier: string;
   state: string;
-  nonce: string;
+  nonce: string | undefined;
   redirectUri?: string;
 }
 
 export function createAuthSession(redirectUri?: string): AuthSession {
+  const isNative = !!redirectUri;
   return {
     codeVerifier: generators.codeVerifier(),
     state: generators.state(),
-    nonce: generators.nonce(),
+    // Nonce is omitted for native/PKCE-only flows. PKCE itself binds the code
+    // exchange so nonce provides no additional security. Some providers also
+    // don't echo the nonce back in the ID token for public clients, which
+    // causes openid-client to throw a nonce mismatch error.
+    nonce: isNative ? undefined : generators.nonce(),
     redirectUri,
   };
 }
@@ -57,10 +62,13 @@ export function getAuthorizationUrl(session: AuthSession, redirectUri?: string):
   const params: Record<string, string> = {
     scope: 'openid profile email',
     state: session.state,
-    nonce: session.nonce,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
   };
+
+  if (session.nonce) {
+    params.nonce = session.nonce;
+  }
   
   if (redirectUri) {
     params.redirect_uri = redirectUri;
@@ -77,14 +85,19 @@ export async function handleCallback(
   
   const redirectUri = session.redirectUri || config.oidc.redirectUri;
   
+  const checks: Record<string, string | undefined> = {
+    code_verifier: session.codeVerifier,
+    state: session.state,
+  };
+
+  if (session.nonce) {
+    checks.nonce = session.nonce;
+  }
+
   const tokenSet = await client.callback(
     redirectUri,
     params,
-    {
-      code_verifier: session.codeVerifier,
-      state: session.state,
-      nonce: session.nonce,
-    }
+    checks,
   );
   
   return tokenSet;

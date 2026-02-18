@@ -158,8 +158,9 @@ router.post("/token", async (req, res) => {
       user,
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("Token exchange error:", error);
-    res.status(500).json({ error: "Failed to exchange token" });
+    res.status(500).json({ error: `Failed to exchange token: ${message}` });
   }
 });
 
