@@ -22,6 +22,8 @@ async function main() {
 
   const app = express();
 
+  app.set("trust proxy", 1);
+
   // CORS
   app.use(
     cors({
@@ -42,7 +44,7 @@ async function main() {
       saveUninitialized: false,
       name: "sessionId",
       cookie: {
-        secure: false,
+        secure: config.nodeEnv === "production",
         httpOnly: true,
         maxAge: config.session.maxAge,
         sameSite: "lax",
