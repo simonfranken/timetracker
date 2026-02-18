@@ -55,6 +55,12 @@ struct LoginView: View {
         .onReceive(NotificationCenter.default.publisher(for: .authCallbackReceived)) { notification in
             handleAuthCallback(notification.userInfo)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .authError)) { notification in
+            if let authError = notification.userInfo?["error"] as? AuthError {
+                isLoading = false
+                errorMessage = authError.errorDescription
+            }
+        }
     }
     
     private func login() {
@@ -62,21 +68,12 @@ struct LoginView: View {
         errorMessage = nil
         
         Task {
-            do {
-                let authService = AuthService.shared
-                await authService.login(presentationAnchor: nil as! ASPresentationAnchor)
-            } catch {
-                await MainActor.run {
-                    isLoading = false
-                    errorMessage = error.localizedDescription
-                }
-            }
+            let authService = AuthService.shared
+            await authService.login(presentationAnchor: nil)
         }
     }
     
     private func handleAuthCallback(_ userInfo: [AnyHashable: Any]?) {
-        // Handle OAuth callback
-        // In practice, this would exchange the code for tokens
         Task {
             await authManager.checkAuthState()
             await MainActor.run {

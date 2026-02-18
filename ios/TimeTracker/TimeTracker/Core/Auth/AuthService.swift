@@ -12,7 +12,7 @@ final class AuthService: NSObject {
         super.init()
     }
     
-    func login(presentationAnchor: ASPresentationAnchor) async throws {
+    func login(presentationAnchor: ASPresentationAnchor?) async throws {
         self.presentationAnchor = presentationAnchor
         
         let codeVerifier = generateCodeVerifier()
@@ -79,15 +79,14 @@ final class AuthService: NSObject {
         
         self.authSession = webAuthSession
         
-        webAuthSession.start { started in
-            if !started {
-                DispatchQueue.main.async {
-                    NotificationCenter.default.post(
-                        name: .authError,
-                        object: nil,
-                        userInfo: ["error": AuthError.failed("Failed to start auth session")]
-                    )
-                }
+        let started = webAuthSession.start()
+        if !started {
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(
+                    name: .authError,
+                    object: nil,
+                    userInfo: ["error": AuthError.failed("Failed to start auth session")]
+                )
             }
         }
     }
