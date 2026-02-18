@@ -18,6 +18,7 @@ model User {
   projects      Project[]
   timeEntries   TimeEntry[]
   ongoingTimer  OngoingTimer?
+  clientTargets ClientTarget[]
 
   @@map("users")
 }
@@ -32,6 +33,7 @@ model Client {
   userId   String @map("user_id") @db.VarChar(255)
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   projects Project[]
+  clientTargets ClientTarget[]
 
   @@index([userId])
   @@map("clients")
@@ -90,4 +92,39 @@ model OngoingTimer {
 
   @@index([userId])
   @@map("ongoing_timers")
+}
+
+model ClientTarget {
+  id           String   @id @default(uuid())
+  weeklyHours  Float    @map("weekly_hours")
+  startDate    DateTime @map("start_date") @db.Date // Always a Monday
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  userId   String @map("user_id") @db.VarChar(255)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId String @map("client_id")
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  corrections BalanceCorrection[]
+
+  @@unique([userId, clientId])
+  @@index([userId])
+  @@index([clientId])
+  @@map("client_targets")
+}
+
+model BalanceCorrection {
+  id          String   @id @default(uuid())
+  date        DateTime @map("date") @db.Date
+  hours       Float
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  clientTargetId String       @map("client_target_id")
+  clientTarget   ClientTarget @relation(fields: [clientTargetId], references: [id], onDelete: Cascade)
+
+  @@index([clientTargetId])
+  @@map("balance_corrections")
 }

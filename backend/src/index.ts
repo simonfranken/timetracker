@@ -11,6 +11,7 @@ import clientRoutes from "./routes/client.routes";
 import projectRoutes from "./routes/project.routes";
 import timeEntryRoutes from "./routes/timeEntry.routes";
 import timerRoutes from "./routes/timer.routes";
+import clientTargetRoutes from "./routes/clientTarget.routes";
 
 async function main() {
   // Validate configuration
@@ -60,6 +61,7 @@ async function main() {
   app.use("/projects", projectRoutes);
   app.use("/time-entries", timeEntryRoutes);
   app.use("/timer", timerRoutes);
+  app.use("/client-targets", clientTargetRoutes);
 
   // Error handling
   app.use(notFoundHandler);

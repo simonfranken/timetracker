@@ -69,3 +69,20 @@ export const UpdateTimerSchema = z.object({
 export const StopTimerSchema = z.object({
   projectId: z.string().uuid().optional(),
 });
+
+export const CreateClientTargetSchema = z.object({
+  clientId: z.string().uuid(),
+  weeklyHours: z.number().positive().max(168),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'startDate must be a date in YYYY-MM-DD format'),
+});
+
+export const UpdateClientTargetSchema = z.object({
+  weeklyHours: z.number().positive().max(168).optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'startDate must be a date in YYYY-MM-DD format').optional(),
+});
+
+export const CreateCorrectionSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be in YYYY-MM-DD format'),
+  hours: z.number().min(-24).max(24),
+  description: z.string().max(255).optional(),
+});

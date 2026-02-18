@@ -75,3 +75,20 @@ export interface UpdateTimerInput {
 export interface StopTimerInput {
   projectId?: string;
 }
+
+export interface CreateClientTargetInput {
+  clientId: string;
+  weeklyHours: number;
+  startDate: string; // YYYY-MM-DD, always a Monday
+}
+
+export interface UpdateClientTargetInput {
+  weeklyHours?: number;
+  startDate?: string; // YYYY-MM-DD, always a Monday
+}
+
+export interface CreateCorrectionInput {
+  date: string; // YYYY-MM-DD
+  hours: number;
+  description?: string;
+}

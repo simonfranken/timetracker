@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { Clock, Calendar, Briefcase, TrendingUp } from "lucide-react";
+import { Clock, Calendar, Briefcase, TrendingUp, Target } from "lucide-react";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
+import { useClientTargets } from "@/hooks/useClientTargets";
 import { ProjectColorDot } from "@/components/ProjectColorDot";
 import { StatCard } from "@/components/StatCard";
 import {
@@ -24,10 +25,14 @@ export function DashboardPage() {
     limit: 10,
   });
 
+  const { targets } = useClientTargets();
+
   const totalTodaySeconds =
     todayEntries?.entries.reduce((total, entry) => {
       return total + calculateDuration(entry.startTime, entry.endTime);
     }, 0) || 0;
+
+  const targetsWithData = targets?.filter(t => t.weeks.length > 0) ?? [];
 
   return (
     <div className="space-y-6">
@@ -70,6 +75,61 @@ export function DashboardPage() {
           color="orange"
         />
       </div>
+
+      {/* Overtime / Targets Widget */}
+      {targetsWithData.length > 0 && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <Target className="h-5 w-5 text-primary-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Weekly Targets</h2>
+          </div>
+          <div className="space-y-3">
+            {targetsWithData.map(target => {
+              const balance = target.totalBalanceSeconds;
+              const absBalance = Math.abs(balance);
+              const isOver = balance > 0;
+              const isEven = balance === 0;
+              const currentWeekTracked = formatDurationHoursMinutes(target.currentWeekTrackedSeconds);
+              const currentWeekTarget = formatDurationHoursMinutes(target.currentWeekTargetSeconds);
+
+              return (
+                <div
+                  key={target.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{target.clientName}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      This week: {currentWeekTracked} / {currentWeekTarget}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p
+                      className={`text-sm font-bold ${
+                        isEven
+                          ? 'text-gray-500'
+                          : isOver
+                          ? 'text-green-600'
+                          : 'text-red-600'
+                      }`}
+                    >
+                      {isEven
+                        ? '±0'
+                        : (isOver ? '+' : '−') + formatDurationHoursMinutes(absBalance)}
+                    </p>
+                    <p className="text-xs text-gray-400">running balance</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-xs text-gray-400">
+            <Link to="/clients" className="text-primary-600 hover:text-primary-700">
+              Manage targets →
+            </Link>
+          </p>
+        </div>
+      )}
 
       {/* Recent Activity */}
       <div className="card">

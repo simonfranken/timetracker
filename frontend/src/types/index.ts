@@ -138,3 +138,53 @@ export interface UpdateTimeEntryInput {
   description?: string;
   projectId?: string;
 }
+
+export interface BalanceCorrection {
+  id: string;
+  date: string; // YYYY-MM-DD
+  hours: number;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface WeekBalance {
+  weekStart: string; // YYYY-MM-DD (Monday)
+  weekEnd: string;   // YYYY-MM-DD (Sunday)
+  trackedSeconds: number;
+  targetSeconds: number;
+  correctionHours: number;
+  balanceSeconds: number;
+}
+
+export interface ClientTargetWithBalance {
+  id: string;
+  clientId: string;
+  clientName: string;
+  userId: string;
+  weeklyHours: number;
+  startDate: string; // YYYY-MM-DD
+  createdAt: string;
+  updatedAt: string;
+  corrections: BalanceCorrection[];
+  totalBalanceSeconds: number;
+  currentWeekTrackedSeconds: number;
+  currentWeekTargetSeconds: number;
+  weeks: WeekBalance[];
+}
+
+export interface CreateClientTargetInput {
+  clientId: string;
+  weeklyHours: number;
+  startDate: string; // YYYY-MM-DD
+}
+
+export interface UpdateClientTargetInput {
+  weeklyHours?: number;
+  startDate?: string;
+}
+
+export interface CreateCorrectionInput {
+  date: string; // YYYY-MM-DD
+  hours: number;
+  description?: string;
+}
