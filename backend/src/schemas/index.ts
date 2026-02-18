@@ -83,6 +83,6 @@ export const UpdateClientTargetSchema = z.object({
 
 export const CreateCorrectionSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be in YYYY-MM-DD format'),
-  hours: z.number().min(-24).max(24),
+  hours: z.number().min(-1000).max(1000),
   description: z.string().max(255).optional(),
 });

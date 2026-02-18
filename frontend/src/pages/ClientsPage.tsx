@@ -145,8 +145,8 @@ function ClientTargetPanel({
     setCorrError(null);
     if (!target) return;
     const hours = parseFloat(corrHours);
-    if (isNaN(hours) || hours < -24 || hours > 24) {
-      setCorrError('Hours must be between -24 and 24');
+    if (isNaN(hours) || hours < -1000 || hours > 1000) {
+      setCorrError('Hours must be between -1000 and 1000');
       return;
     }
     if (!corrDate) {
@@ -336,8 +336,6 @@ function ClientTargetPanel({
                     onChange={e => setCorrHours(e.target.value)}
                     className="input text-xs py-1"
                     placeholder="+8 / -4"
-                    min="-24"
-                    max="24"
                     step="0.5"
                     required
                   />
