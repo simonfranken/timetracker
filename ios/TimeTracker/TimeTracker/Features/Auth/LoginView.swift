@@ -12,7 +12,7 @@ struct LoginView: View {
             
             Image(systemName: "timer")
                 .font(.system(size: 64))
-                .foregroundStyle(.accent)
+                .foregroundStyle(Color.accentColor)
             
             Text("TimeTracker")
                 .font(.largeTitle)
