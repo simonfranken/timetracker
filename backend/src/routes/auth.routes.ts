@@ -6,7 +6,7 @@ import {
   handleCallback,
   getUserInfo,
 } from "../auth/oidc";
-import { syncUser } from "../middleware/auth";
+import { requireAuth, syncUser } from "../middleware/auth";
 import type { AuthenticatedRequest } from "../types";
 
 const router = Router();
@@ -84,12 +84,8 @@ router.post("/logout", (req: AuthenticatedRequest, res) => {
 });
 
 // GET /auth/me - Get current user
-router.get("/me", (req: AuthenticatedRequest, res) => {
-  if (!req.session?.user) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
-  res.json(req.session.user);
+router.get("/me", requireAuth, (req: AuthenticatedRequest, res) => {
+  res.json(req.user);
 });
 
 export default router;

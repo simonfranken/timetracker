@@ -1,9 +1,11 @@
 import { prisma } from "../prisma/client";
+import { Prisma } from "@prisma/client";
 import {
   NotFoundError,
   BadRequestError,
   ConflictError,
 } from "../errors/AppError";
+import { hasOverlappingEntries } from "../utils/timeUtils";
 import type {
   CreateTimeEntryInput,
   UpdateTimeEntryInput,
@@ -14,131 +16,93 @@ import type {
 export class TimeEntryService {
   async getStatistics(userId: string, filters: StatisticsFilters = {}) {
     const { startDate, endDate, projectId, clientId } = filters;
-    const where: {
-      userId: string;
-      startTime?: { gte?: Date; lte?: Date };
-      projectId?: string;
-      project?: { clientId?: string };
-    } = { userId };
 
-    if (startDate || endDate) {
-      where.startTime = {};
-      if (startDate) where.startTime.gte = new Date(startDate);
-      if (endDate) where.startTime.lte = new Date(endDate);
-    }
+    // Build an array of safe Prisma SQL filter fragments to append as AND clauses.
+    const extraFilters: Prisma.Sql[] = [];
+    if (startDate)  extraFilters.push(Prisma.sql`AND te.start_time >= ${new Date(startDate)}`);
+    if (endDate)    extraFilters.push(Prisma.sql`AND te.start_time <= ${new Date(endDate)}`);
+    if (projectId)  extraFilters.push(Prisma.sql`AND te.project_id = ${projectId}`);
+    if (clientId)   extraFilters.push(Prisma.sql`AND p.client_id = ${clientId}`);
 
-    if (projectId) {
-      where.projectId = projectId;
-    }
+    const filterClause = extraFilters.length
+      ? Prisma.join(extraFilters, " ")
+      : Prisma.empty;
 
-    if (clientId) {
-      where.project = { clientId };
-    }
-
-    const entries = await prisma.timeEntry.findMany({
-      where,
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-            client: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    // Calculate total duration in seconds
-    const totalSeconds = entries.reduce((total, entry) => {
-      const startTime = new Date(entry.startTime);
-      const endTime = new Date(entry.endTime);
-      return (
-        total + Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
-      );
-    }, 0);
-
-    // Calculate by project
-    const byProject = entries.reduce(
-      (acc, entry) => {
-        const projectId = entry.project.id;
-        const projectName = entry.project.name;
-        const projectColor = entry.project.color;
-        const startTime = new Date(entry.startTime);
-        const endTime = new Date(entry.endTime);
-        const duration = Math.floor(
-          (endTime.getTime() - startTime.getTime()) / 1000,
-        );
-
-        if (!acc[projectId]) {
-          acc[projectId] = {
-            projectId,
-            projectName,
-            projectColor,
-            totalSeconds: 0,
-            entryCount: 0,
-          };
-        }
-        acc[projectId].totalSeconds += duration;
-        acc[projectId].entryCount += 1;
-        return acc;
-      },
-      {} as Record<
-        string,
+    const [projectGroups, clientGroups, totalAgg] = await Promise.all([
+      prisma.$queryRaw<
         {
-          projectId: string;
-          projectName: string;
-          projectColor: string | null;
-          totalSeconds: number;
-          entryCount: number;
-        }
-      >,
-    );
+          project_id: string;
+          project_name: string;
+          project_color: string | null;
+          total_seconds: bigint;
+          entry_count: bigint;
+        }[]
+      >(Prisma.sql`
+        SELECT
+          p.id   AS project_id,
+          p.name AS project_name,
+          p.color AS project_color,
+          COALESCE(SUM(EXTRACT(EPOCH FROM (te.end_time - te.start_time))), 0)::bigint AS total_seconds,
+          COUNT(te.id)::bigint AS entry_count
+        FROM time_entries te
+        JOIN projects p ON p.id = te.project_id
+        WHERE te.user_id = ${userId}
+        ${filterClause}
+        GROUP BY p.id, p.name, p.color
+        ORDER BY total_seconds DESC
+      `),
 
-    // Calculate by client
-    const byClient = entries.reduce(
-      (acc, entry) => {
-        const clientId = entry.project.client.id;
-        const clientName = entry.project.client.name;
-        const startTime = new Date(entry.startTime);
-        const endTime = new Date(entry.endTime);
-        const duration = Math.floor(
-          (endTime.getTime() - startTime.getTime()) / 1000,
-        );
-
-        if (!acc[clientId]) {
-          acc[clientId] = {
-            clientId,
-            clientName,
-            totalSeconds: 0,
-            entryCount: 0,
-          };
-        }
-        acc[clientId].totalSeconds += duration;
-        acc[clientId].entryCount += 1;
-        return acc;
-      },
-      {} as Record<
-        string,
+      prisma.$queryRaw<
         {
-          clientId: string;
-          clientName: string;
-          totalSeconds: number;
-          entryCount: number;
-        }
-      >,
-    );
+          client_id: string;
+          client_name: string;
+          total_seconds: bigint;
+          entry_count: bigint;
+        }[]
+      >(Prisma.sql`
+        SELECT
+          c.id   AS client_id,
+          c.name AS client_name,
+          COALESCE(SUM(EXTRACT(EPOCH FROM (te.end_time - te.start_time))), 0)::bigint AS total_seconds,
+          COUNT(te.id)::bigint AS entry_count
+        FROM time_entries te
+        JOIN projects p ON p.id = te.project_id
+        JOIN clients  c ON c.id = p.client_id
+        WHERE te.user_id = ${userId}
+        ${filterClause}
+        GROUP BY c.id, c.name
+        ORDER BY total_seconds DESC
+      `),
+
+      prisma.$queryRaw<{ total_seconds: bigint; entry_count: bigint }[]>(
+        Prisma.sql`
+          SELECT
+            COALESCE(SUM(EXTRACT(EPOCH FROM (te.end_time - te.start_time))), 0)::bigint AS total_seconds,
+            COUNT(te.id)::bigint AS entry_count
+          FROM time_entries te
+          JOIN projects p ON p.id = te.project_id
+          WHERE te.user_id = ${userId}
+          ${filterClause}
+        `,
+      ),
+    ]);
 
     return {
-      totalSeconds,
-      entryCount: entries.length,
-      byProject: Object.values(byProject),
-      byClient: Object.values(byClient),
+      totalSeconds: Number(totalAgg[0]?.total_seconds ?? 0),
+      entryCount: Number(totalAgg[0]?.entry_count ?? 0),
+      byProject: projectGroups.map((r) => ({
+        projectId: r.project_id,
+        projectName: r.project_name,
+        projectColor: r.project_color,
+        totalSeconds: Number(r.total_seconds),
+        entryCount: Number(r.entry_count),
+      })),
+      byClient: clientGroups.map((r) => ({
+        clientId: r.client_id,
+        clientName: r.client_name,
+        totalSeconds: Number(r.total_seconds),
+        entryCount: Number(r.entry_count),
+      })),
       filters: {
         startDate: startDate || null,
         endDate: endDate || null,
@@ -256,7 +220,7 @@ export class TimeEntryService {
     }
 
     // Check for overlapping entries
-    const hasOverlap = await this.hasOverlappingEntries(
+    const hasOverlap = await hasOverlappingEntries(
       userId,
       startTime,
       endTime,
@@ -321,7 +285,7 @@ export class TimeEntryService {
     }
 
     // Check for overlapping entries (excluding this entry)
-    const hasOverlap = await this.hasOverlappingEntries(
+    const hasOverlap = await hasOverlappingEntries(
       userId,
       startTime,
       endTime,
@@ -368,34 +332,5 @@ export class TimeEntryService {
     await prisma.timeEntry.delete({
       where: { id },
     });
-  }
-
-  private async hasOverlappingEntries(
-    userId: string,
-    startTime: Date,
-    endTime: Date,
-    excludeId?: string,
-  ): Promise<boolean> {
-    const where: {
-      userId: string;
-      id?: { not: string };
-      OR: Array<{
-        startTime?: { lt: Date };
-        endTime?: { gt: Date };
-      }>;
-    } = {
-      userId,
-      OR: [
-        // Entry starts during the new entry
-        { startTime: { lt: endTime }, endTime: { gt: startTime } },
-      ],
-    };
-
-    if (excludeId) {
-      where.id = { not: excludeId };
-    }
-
-    const count = await prisma.timeEntry.count({ where });
-    return count > 0;
   }
 }

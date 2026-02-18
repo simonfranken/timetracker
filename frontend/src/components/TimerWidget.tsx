@@ -3,6 +3,7 @@ import { Play, Square, ChevronDown } from 'lucide-react';
 import { useTimer } from '@/contexts/TimerContext';
 import { useProjects } from '@/hooks/useProjects';
 import { formatDuration } from '@/utils/dateUtils';
+import { ProjectColorDot } from '@/components/ProjectColorDot';
 
 export function TimerWidget() {
   const { ongoingTimer, isLoading, elapsedSeconds, startTimer, stopTimer, updateTimerProject } = useTimer();
@@ -80,10 +81,7 @@ export function TimerWidget() {
                 >
                   {ongoingTimer.project ? (
                     <>
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: ongoingTimer.project.color || '#6b7280' }}
-                      />
+                      <ProjectColorDot color={ongoingTimer.project.color} />
                       <span className="text-sm font-medium text-gray-700">
                         {ongoingTimer.project.name}
                       </span>
@@ -110,10 +108,7 @@ export function TimerWidget() {
                         onClick={() => handleProjectChange(project.id)}
                         className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center space-x-2"
                       >
-                        <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: project.color || '#6b7280' }}
-                        />
+                        <ProjectColorDot color={project.color} />
                         <div className="min-w-0">
                           <div className="font-medium text-gray-900 truncate">{project.name}</div>
                           <div className="text-xs text-gray-500 truncate">{project.client.name}</div>

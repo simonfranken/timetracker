@@ -1,10 +1,13 @@
 import { Link } from "react-router-dom";
 import { Clock, Calendar, Briefcase, TrendingUp } from "lucide-react";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
+import { ProjectColorDot } from "@/components/ProjectColorDot";
+import { StatCard } from "@/components/StatCard";
 import {
   formatDate,
   formatDurationFromDates,
   formatDurationHoursMinutes,
+  calculateDuration,
 } from "@/utils/dateUtils";
 import { startOfDay, endOfDay } from "date-fns";
 
@@ -106,13 +109,8 @@ export function DashboardPage() {
                   <tr key={entry.id}>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div
-                          className="w-3 h-3 rounded-full mr-2"
-                          style={{
-                            backgroundColor: entry.project.color || "#6b7280",
-                          }}
-                        />
-                        <div>
+                        <ProjectColorDot color={entry.project.color} />
+                        <div className="ml-2">
                           <div className="text-sm font-medium text-gray-900">
                             {entry.project.name}
                           </div>
@@ -136,41 +134,5 @@ export function DashboardPage() {
         )}
       </div>
     </div>
-  );
-}
-
-interface StatCardProps {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-  color: "blue" | "green" | "purple" | "orange";
-}
-
-function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
-  const colors = {
-    blue: "bg-blue-50 text-blue-600",
-    green: "bg-green-50 text-green-600",
-    purple: "bg-purple-50 text-purple-600",
-    orange: "bg-orange-50 text-orange-600",
-  };
-
-  return (
-    <div className="card p-4">
-      <div className="flex items-center">
-        <div className={`p-3 rounded-lg ${colors[color]}`}>
-          <Icon className="h-6 w-6" />
-        </div>
-        <div className="ml-4">
-          <p className="text-sm font-medium text-gray-600">{label}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function calculateDuration(startTime: string, endTime: string): number {
-  return Math.floor(
-    (new Date(endTime).getTime() - new Date(startTime).getTime()) / 1000,
   );
 }

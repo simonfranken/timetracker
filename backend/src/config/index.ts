@@ -40,8 +40,8 @@ export function validateConfig(): void {
   }
 
   if (config.session.secret.length < 32) {
-    console.warn(
-      "Warning: SESSION_SECRET should be at least 32 characters for security",
+    throw new Error(
+      "SESSION_SECRET must be at least 32 characters. Set a strong secret in your environment.",
     );
   }
 }

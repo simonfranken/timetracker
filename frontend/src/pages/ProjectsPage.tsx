@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { Plus, Edit2, Trash2, FolderOpen } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { useClients } from '@/hooks/useClients';
+import { Modal } from '@/components/Modal';
+import { Spinner } from '@/components/Spinner';
+import { ProjectColorDot } from '@/components/ProjectColorDot';
 import type { Project, CreateProjectInput, UpdateProjectInput } from '@/types';
 
 const PRESET_COLORS = [
@@ -97,11 +100,7 @@ export function ProjectsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <Spinner />;
   }
 
   if (!clients?.length) {
@@ -134,7 +133,7 @@ export function ProjectsPage() {
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: project.color || '#6b7280' }} />
+                  <ProjectColorDot color={project.color} size="w-4 h-4" />
                   <h3 className="font-medium text-gray-900 truncate">{project.name}</h3>
                 </div>
                 <p className="mt-1 text-sm text-gray-500">{project.client.name}</p>
@@ -153,42 +152,52 @@ export function ProjectsPage() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h2 className="text-lg font-semibold mb-4">{editingProject ? 'Edit Project' : 'Add Project'}</h2>
-            {error && <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="label">Project Name</label>
-                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input" />
+        <Modal
+          title={editingProject ? 'Edit Project' : 'Add Project'}
+          onClose={handleCloseModal}
+        >
+          {error && <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="label">Project Name</label>
+              <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input" />
+            </div>
+            <div>
+              <label className="label">Client</label>
+              <select value={formData.clientId} onChange={(e) => setFormData({ ...formData, clientId: e.target.value })} className="input">
+                {clients?.map((client) => (
+                  <option key={client.id} value={client.id}>{client.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Color</label>
+              <div className="flex flex-wrap gap-2">
+                {PRESET_COLORS.map((color) => (
+                  <button key={color} type="button" onClick={() => setFormData({ ...formData, color })} className={`w-8 h-8 rounded-full ${formData.color === color ? 'ring-2 ring-offset-2 ring-gray-400' : ''}`} style={{ backgroundColor: color }} />
+                ))}
               </div>
-              <div>
-                <label className="label">Client</label>
-                <select value={formData.clientId} onChange={(e) => setFormData({ ...formData, clientId: e.target.value })} className="input">
-                  {clients?.map((client) => (
-                    <option key={client.id} value={client.id}>{client.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="label">Color</label>
-                <div className="flex flex-wrap gap-2">
-                  {PRESET_COLORS.map((color) => (
-                    <button key={color} type="button" onClick={() => setFormData({ ...formData, color })} className={`w-8 h-8 rounded-full ${formData.color === color ? 'ring-2 ring-offset-2 ring-gray-400' : ''}`} style={{ backgroundColor: color }} />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="label">Description</label>
-                <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="input" rows={2} />
-              </div>
-              <div className="flex justify-end space-x-3 pt-2">
-                <button type="button" onClick={handleCloseModal} className="btn-secondary">Cancel</button>
-                <button type="submit" className="btn-primary">{editingProject ? 'Save' : 'Create'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
+            </div>
+            <div>
+              <label className="label">Description</label>
+              <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="input" rows={2} />
+            </div>
+            <div className="flex justify-end space-x-3 pt-2">
+              <button type="button" onClick={handleCloseModal} className="btn-secondary">Cancel</button>
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={createProject.isPending || updateProject.isPending}
+              >
+                {createProject.isPending || updateProject.isPending
+                  ? 'Saving...'
+                  : editingProject
+                  ? 'Save'
+                  : 'Create'}
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

@@ -9,7 +9,8 @@ import {
 import { useStatistics } from "@/hooks/useTimeEntries";
 import { useClients } from "@/hooks/useClients";
 import { useProjects } from "@/hooks/useProjects";
-import { formatDuration } from "@/utils/dateUtils";
+import { ProjectColorDot } from "@/components/ProjectColorDot";
+import { formatDuration, toISOTimezone } from "@/utils/dateUtils";
 import type { StatisticsFilters } from "@/types";
 
 export function StatisticsPage() {
@@ -64,7 +65,7 @@ export function StatisticsPage() {
               onChange={(e) =>
                 handleFilterChange(
                   "startDate",
-                  e.target.value ? `${e.target.value}T00:00:00` : undefined,
+                  e.target.value ? toISOTimezone(`${e.target.value}T00:00:00`) : undefined,
                 )
               }
               className="input"
@@ -84,7 +85,7 @@ export function StatisticsPage() {
               onChange={(e) =>
                 handleFilterChange(
                   "endDate",
-                  e.target.value ? `${e.target.value}T23:59:59` : undefined,
+                  e.target.value ? toISOTimezone(`${e.target.value}T23:59:59`) : undefined,
                 )
               }
               className="input"
@@ -192,13 +193,8 @@ export function StatisticsPage() {
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{
-                      backgroundColor: project.projectColor || "#6b7280",
-                    }}
-                  />
-                  <span className="font-medium text-gray-900">
+                   <ProjectColorDot color={project.projectColor} />
+                   <span className="font-medium text-gray-900">
                     {project.projectName}
                   </span>
                   <span className="text-sm text-gray-500">

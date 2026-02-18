@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Building2 } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
+import { Modal } from '@/components/Modal';
+import { Spinner } from '@/components/Spinner';
 import type { Client, CreateClientInput, UpdateClientInput } from '@/types';
 
 export function ClientsPage() {
@@ -66,11 +68,7 @@ export function ClientsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <Spinner />;
   }
 
   return (
@@ -145,67 +143,62 @@ export function ClientsPage() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {editingClient ? 'Edit Client' : 'Add Client'}
-              </h2>
+        <Modal
+          title={editingClient ? 'Edit Client' : 'Add Client'}
+          onClose={handleCloseModal}
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            <div>
+              <label className="label">Client Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="input"
+                placeholder="Enter client name"
+                autoFocus
+              />
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {error && (
-                <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
+            <div>
+              <label className="label">Description (Optional)</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="input"
+                rows={3}
+                placeholder="Enter description"
+              />
+            </div>
 
-              <div>
-                <label className="label">Client Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="input"
-                  placeholder="Enter client name"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="label">Description (Optional)</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="input"
-                  rows={3}
-                  placeholder="Enter description"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  disabled={createClient.isPending || updateClient.isPending}
-                >
-                  {createClient.isPending || updateClient.isPending
-                    ? 'Saving...'
-                    : editingClient
-                    ? 'Save Changes'
-                    : 'Add Client'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <div className="flex justify-end space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={createClient.isPending || updateClient.isPending}
+              >
+                {createClient.isPending || updateClient.isPending
+                  ? 'Saving...'
+                  : editingClient
+                  ? 'Save Changes'
+                  : 'Add Client'}
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { useTimeEntries } from '@/hooks/useTimeEntries';
 import { useProjects } from '@/hooks/useProjects';
+import { Modal } from '@/components/Modal';
+import { Spinner } from '@/components/Spinner';
+import { ProjectColorDot } from '@/components/ProjectColorDot';
 import { formatDate, formatDurationFromDates, getLocalISOString, toISOTimezone } from '@/utils/dateUtils';
 import type { TimeEntry, CreateTimeEntryInput, UpdateTimeEntryInput } from '@/types';
 
@@ -86,7 +89,7 @@ export function TimeEntriesPage() {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center h-64 items-center"><div className="animate-spin h-12 w-12 border-b-2 border-primary-600 rounded-full"></div></div>;
+    return <Spinner />;
   }
 
   return (
@@ -117,8 +120,8 @@ export function TimeEntriesPage() {
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{formatDate(entry.startTime)}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: entry.project.color || '#6b7280' }} />
-                    <div>
+                    <ProjectColorDot color={entry.project.color} />
+                    <div className="ml-2">
                       <div className="text-sm font-medium text-gray-900">{entry.project.name}</div>
                       <div className="text-xs text-gray-500">{entry.project.client.name}</div>
                     </div>
@@ -139,38 +142,48 @@ export function TimeEntriesPage() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h2 className="text-lg font-semibold mb-4">{editingEntry ? 'Edit Entry' : 'Add Entry'}</h2>
-            {error && <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <Modal
+          title={editingEntry ? 'Edit Entry' : 'Add Entry'}
+          onClose={handleCloseModal}
+        >
+          {error && <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="label">Project</label>
+              <select value={formData.projectId} onChange={(e) => setFormData({ ...formData, projectId: e.target.value })} className="input">
+                {projects?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">Project</label>
-                <select value={formData.projectId} onChange={(e) => setFormData({ ...formData, projectId: e.target.value })} className="input">
-                  {projects?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Start</label>
-                  <input type="datetime-local" value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} className="input" />
-                </div>
-                <div>
-                  <label className="label">End</label>
-                  <input type="datetime-local" value={formData.endTime} onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} className="input" />
-                </div>
+                <label className="label">Start</label>
+                <input type="datetime-local" value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} className="input" />
               </div>
               <div>
-                <label className="label">Description</label>
-                <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="input" rows={2} />
+                <label className="label">End</label>
+                <input type="datetime-local" value={formData.endTime} onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} className="input" />
               </div>
-              <div className="flex justify-end space-x-3 pt-2">
-                <button type="button" onClick={handleCloseModal} className="btn-secondary">Cancel</button>
-                <button type="submit" className="btn-primary">{editingEntry ? 'Save' : 'Create'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
+            </div>
+            <div>
+              <label className="label">Description</label>
+              <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="input" rows={2} />
+            </div>
+            <div className="flex justify-end space-x-3 pt-2">
+              <button type="button" onClick={handleCloseModal} className="btn-secondary">Cancel</button>
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={createTimeEntry.isPending || updateTimeEntry.isPending}
+              >
+                {createTimeEntry.isPending || updateTimeEntry.isPending
+                  ? 'Saving...'
+                  : editingEntry
+                  ? 'Save'
+                  : 'Create'}
+              </button>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

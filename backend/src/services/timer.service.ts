@@ -4,6 +4,7 @@ import {
   BadRequestError,
   ConflictError,
 } from "../errors/AppError";
+import { hasOverlappingEntries } from "../utils/timeUtils";
 import type {
   StartTimerInput,
   UpdateTimerInput,
@@ -155,7 +156,7 @@ export class TimerService {
     const startTime = timer.startTime;
 
     // Check for overlapping entries
-    const hasOverlap = await this.hasOverlappingEntries(
+    const hasOverlap = await hasOverlappingEntries(
       userId,
       startTime,
       endTime,
@@ -197,19 +198,5 @@ export class TimerService {
     ]);
 
     return result[1]; // Return the created time entry
-  }
-
-  private async hasOverlappingEntries(
-    userId: string,
-    startTime: Date,
-    endTime: Date,
-  ): Promise<boolean> {
-    const count = await prisma.timeEntry.count({
-      where: {
-        userId,
-        OR: [{ startTime: { lt: endTime }, endTime: { gt: startTime } }],
-      },
-    });
-    return count > 0;
   }
 }
