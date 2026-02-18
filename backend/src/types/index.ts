@@ -3,6 +3,7 @@ import { Request } from 'express';
 export interface AuthenticatedUser {
   id: string;
   username: string;
+  fullName: string | null;
   email: string;
 }
 

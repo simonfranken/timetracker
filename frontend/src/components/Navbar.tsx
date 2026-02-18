@@ -114,8 +114,8 @@ export function Navbar() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600 hidden sm:block">
-              {user?.username}
+            <span className="text-sm font-medium text-gray-600 hidden sm:block">
+              {user?.fullName || user?.username}
             </span>
             <button
               onClick={logout}

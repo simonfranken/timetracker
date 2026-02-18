@@ -92,6 +92,7 @@ export async function getUserInfo(tokenSet: TokenSet): Promise<AuthenticatedUser
   const id = String(claims.sub);
   const username = String(userInfo.preferred_username || claims.preferred_username || claims.name || id);
   const email = String(userInfo.email || claims.email || '');
+  const fullName = String(userInfo.name || claims.name || '') || null;
   
   if (!email) {
     throw new Error('Email not provided by OIDC provider');
@@ -100,6 +101,7 @@ export async function getUserInfo(tokenSet: TokenSet): Promise<AuthenticatedUser
   return {
     id,
     username,
+    fullName,
     email,
   };
 }

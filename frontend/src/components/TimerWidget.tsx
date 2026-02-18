@@ -80,8 +80,8 @@ export function TimerWidget() {
 
   if (isLoading) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">
-        <div className="max-w-7xl mx-auto flex items-center justify-center">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-4 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
         </div>
       </div>
@@ -89,8 +89,8 @@ export function TimerWidget() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg z-50">
-      <div className="max-w-7xl mx-auto flex flex-wrap sm:flex-nowrap items-center gap-2 sm:justify-between">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-4 shadow-lg z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap sm:flex-nowrap items-center gap-2 sm:justify-between">
         {ongoingTimer ? (
           <>
             {/* Row 1 (mobile): timer + stop side by side. On sm+ dissolves into the parent flex row via contents. */}
@@ -183,7 +183,7 @@ export function TimerWidget() {
       </div>
 
       {error && (
-        <div className="max-w-7xl mx-auto mt-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-2">
           <p className="text-sm text-red-600">{error}</p>
         </div>
       )}

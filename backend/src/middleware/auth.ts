@@ -32,11 +32,13 @@ export async function syncUser(user: AuthenticatedUser): Promise<void> {
     where: { id: user.id },
     update: {
       username: user.username,
+      fullName: user.fullName,
       email: user.email,
     },
     create: {
       id: user.id,
       username: user.username,
+      fullName: user.fullName,
       email: user.email,
     },
   });

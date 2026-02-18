@@ -19,14 +19,20 @@ export function StatisticsPage() {
   const { clients } = useClients();
   const { projects } = useProjects();
 
+  const filteredProjects = filters.clientId
+    ? (projects ?? []).filter((p) => p.clientId === filters.clientId)
+    : projects;
+
   const handleFilterChange = (
     key: keyof StatisticsFilters,
     value: string | undefined,
   ) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value || undefined,
-    }));
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value || undefined };
+      // When client changes, clear any project selection that may belong to a different client
+      if (key === 'clientId') next.projectId = undefined;
+      return next;
+    });
   };
 
   const clearFilters = () => {
@@ -132,7 +138,7 @@ export function StatisticsPage() {
               className="input"
             >
               <option value="">All Projects</option>
-              {projects?.map((project) => (
+              {filteredProjects?.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
                 </option>
