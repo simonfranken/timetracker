@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, FolderOpen } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { useClients } from '@/hooks/useClients';
 import { Modal } from '@/components/Modal';
+import { ConfirmModal } from '@/components/ConfirmModal';
 import { Spinner } from '@/components/Spinner';
 import { ProjectColorDot } from '@/components/ProjectColorDot';
 import type { Project, CreateProjectInput, UpdateProjectInput } from '@/types';
@@ -87,13 +88,12 @@ export function ProjectsPage() {
     }
   };
 
-  const handleDelete = async (project: Project) => {
-    if (!confirm(`Are you sure you want to delete "${project.name}"?`)) {
-      return;
-    }
+  const [confirmProject, setConfirmProject] = useState<Project | null>(null);
 
+  const handleDeleteConfirmed = async () => {
+    if (!confirmProject) return;
     try {
-      await deleteProject.mutateAsync(project.id);
+      await deleteProject.mutateAsync(confirmProject.id);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete project');
     }
@@ -142,7 +142,7 @@ export function ProjectsPage() {
                 <button onClick={() => handleOpenModal(project)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded">
                   <Edit2 className="h-4 w-4" />
                 </button>
-                <button onClick={() => handleDelete(project)} className="p-1.5 text-gray-400 hover:text-red-600 rounded">
+                <button onClick={() => setConfirmProject(project)} className="p-1.5 text-gray-400 hover:text-red-600 rounded">
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
@@ -198,6 +198,14 @@ export function ProjectsPage() {
             </div>
           </form>
         </Modal>
+      )}
+      {confirmProject && (
+        <ConfirmModal
+          title={`Delete "${confirmProject.name}"`}
+          message="Are you sure you want to delete this project?"
+          onConfirm={handleDeleteConfirmed}
+          onClose={() => setConfirmProject(null)}
+        />
       )}
     </div>
   );

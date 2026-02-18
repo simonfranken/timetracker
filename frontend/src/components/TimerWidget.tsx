@@ -90,26 +90,38 @@ export function TimerWidget() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg z-50">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div className="max-w-7xl mx-auto flex flex-wrap sm:flex-nowrap items-center gap-2 sm:justify-between">
         {ongoingTimer ? (
           <>
-            {/* Running Timer Display */}
-            <div className="flex items-center space-x-4 flex-1">
-              <div className="flex items-center space-x-2">
+            {/* Row 1 (mobile): timer + stop side by side. On sm+ dissolves into the parent flex row via contents. */}
+            <div className="flex items-center justify-between w-full sm:contents">
+              {/* Timer Display */}
+              <div className="flex items-center space-x-2 shrink-0">
                 <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                 <TimerDisplay totalSeconds={elapsedSeconds} />
               </div>
 
-              {/* Project Selector */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowProjectSelect(!showProjectSelect)}
-                  className="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
+              {/* Stop Button */}
+              <button
+                onClick={handleStop}
+                className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors shrink-0 sm:order-last"
+              >
+                <Square className="h-5 w-5 fill-current" />
+                <span>Stop</span>
+              </button>
+            </div>
+
+            {/* Project Selector — full width on mobile, auto on desktop */}
+            <div className="relative w-full sm:w-auto sm:flex-1 sm:mx-4">
+              <button
+                onClick={() => setShowProjectSelect(!showProjectSelect)}
+                className="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full sm:w-auto"
+              >
+                <span className="flex items-center space-x-2 min-w-0 flex-1">
                   {ongoingTimer.project ? (
                     <>
                       <ProjectColorDot color={ongoingTimer.project.color} />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-medium text-gray-700 truncate">
                         {ongoingTimer.project.name}
                       </span>
                     </>
@@ -118,50 +130,41 @@ export function TimerWidget() {
                       Select project...
                     </span>
                   )}
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                </button>
+                </span>
+                <ChevronDown className="h-4 w-4 text-gray-500 shrink-0" />
+              </button>
 
-                {showProjectSelect && (
-                  <div className="absolute bottom-full left-0 mb-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 max-h-64 overflow-y-auto">
+              {showProjectSelect && (
+                <div className="absolute bottom-full left-0 mb-2 w-64 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-lg border border-gray-200 max-h-64 overflow-y-auto">
+                  <button
+                    onClick={handleClearProject}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-500 hover:bg-gray-50 border-b border-gray-100"
+                  >
+                    No project
+                  </button>
+                  {projects?.map((project) => (
                     <button
-                      onClick={handleClearProject}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-500 hover:bg-gray-50 border-b border-gray-100"
+                      key={project.id}
+                      onClick={() => handleProjectChange(project.id)}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center space-x-2"
                     >
-                      No project
-                    </button>
-                    {projects?.map((project) => (
-                      <button
-                        key={project.id}
-                        onClick={() => handleProjectChange(project.id)}
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center space-x-2"
-                      >
-                        <ProjectColorDot color={project.color} />
-                        <div className="min-w-0">
-                          <div className="font-medium text-gray-900 truncate">
-                            {project.name}
-                          </div>
-                          <div className="text-xs text-gray-500 truncate">
-                            {project.client.name}
-                          </div>
+                      <ProjectColorDot color={project.color} />
+                      <div className="min-w-0">
+                        <div className="font-medium text-gray-900 truncate">
+                          {project.name}
                         </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                        <div className="text-xs text-gray-500 truncate">
+                          {project.client.name}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-
-            {/* Stop Button */}
-            <button
-              onClick={handleStop}
-              className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
-            >
-              <Square className="h-5 w-5 fill-current" />
-              <span>Stop</span>
-            </button>
           </>
         ) : (
-          <>
+          <div className="flex items-center justify-between w-full">
             {/* Stopped Timer Display */}
             <div className="flex items-center space-x-2">
               <span className="text-gray-500">Ready to track time</span>
@@ -175,7 +178,7 @@ export function TimerWidget() {
               <Play className="h-5 w-5 fill-current" />
               <span>Start</span>
             </button>
-          </>
+          </div>
         )}
       </div>
 

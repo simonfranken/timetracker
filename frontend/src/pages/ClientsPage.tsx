@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, Building2, Target, ChevronDown, ChevronUp, X } fro
 import { useClients } from '@/hooks/useClients';
 import { useClientTargets } from '@/hooks/useClientTargets';
 import { Modal } from '@/components/Modal';
+import { ConfirmModal } from '@/components/ConfirmModal';
 import { Spinner } from '@/components/Spinner';
 import { formatDurationHoursMinutes } from '@/utils/dateUtils';
 import type {
@@ -129,8 +130,9 @@ function ClientTargetPanel({
     }
   };
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const handleDelete = async () => {
-    if (!confirm('Delete this target? All corrections will also be deleted.')) return;
     try {
       await onDeleted();
     } catch (err) {
@@ -267,7 +269,7 @@ function ClientTargetPanel({
             <Edit2 className="h-3.5 w-3.5" />
           </button>
           <button
-            onClick={handleDelete}
+            onClick={() => setShowDeleteConfirm(true)}
             className="p-1 text-gray-400 hover:text-red-600 rounded"
             title="Delete target"
           >
@@ -380,6 +382,15 @@ function ClientTargetPanel({
           )}
         </div>
       )}
+
+      {showDeleteConfirm && (
+        <ConfirmModal
+          title="Delete Target"
+          message="Delete this target? All corrections will also be deleted."
+          onConfirm={handleDelete}
+          onClose={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   );
 }
@@ -436,13 +447,12 @@ export function ClientsPage() {
     }
   };
 
-  const handleDelete = async (client: Client) => {
-    if (!confirm(`Are you sure you want to delete "${client.name}"? This will also delete all associated projects and time entries.`)) {
-      return;
-    }
+  const [confirmClient, setConfirmClient] = useState<Client | null>(null);
 
+  const handleDeleteConfirmed = async () => {
+    if (!confirmClient) return;
     try {
-      await deleteClient.mutateAsync(client.id);
+      await deleteClient.mutateAsync(confirmClient.id);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete client');
     }
@@ -512,7 +522,7 @@ export function ClientsPage() {
                       <Edit2 className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(client)}
+                      onClick={() => setConfirmClient(client)}
                       className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -594,6 +604,15 @@ export function ClientsPage() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {confirmClient && (
+        <ConfirmModal
+          title={`Delete "${confirmClient.name}"`}
+          message="This will also delete all associated projects and time entries. This action cannot be undone."
+          onConfirm={handleDeleteConfirmed}
+          onClose={() => setConfirmClient(null)}
+        />
       )}
     </div>
   );

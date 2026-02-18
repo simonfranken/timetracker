@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Clock, Calendar, Briefcase, TrendingUp, Target } from "lucide-react";
+import { Clock, Calendar, Briefcase, TrendingUp, Target, Edit2, Trash2 } from "lucide-react";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
 import { useClientTargets } from "@/hooks/useClientTargets";
 import { ProjectColorDot } from "@/components/ProjectColorDot";
 import { StatCard } from "@/components/StatCard";
+import { TimeEntryFormModal } from "@/components/TimeEntryFormModal";
+import { ConfirmModal } from "@/components/ConfirmModal";
 import {
   formatDate,
   formatTime,
@@ -12,6 +15,7 @@ import {
   calculateDuration,
 } from "@/utils/dateUtils";
 import { startOfDay, endOfDay } from "date-fns";
+import type { TimeEntry } from "@/types";
 
 export function DashboardPage() {
   const today = new Date();
@@ -21,11 +25,34 @@ export function DashboardPage() {
     limit: 5,
   });
 
-  const { data: recentEntries } = useTimeEntries({
+  const { data: recentEntries, createTimeEntry, updateTimeEntry, deleteTimeEntry } = useTimeEntries({
     limit: 10,
   });
 
   const { targets } = useClientTargets();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
+  const [confirmEntry, setConfirmEntry] = useState<TimeEntry | null>(null);
+
+  const handleOpenModal = (entry: TimeEntry) => {
+    setEditingEntry(entry);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingEntry(null);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!confirmEntry) return;
+    try {
+      await deleteTimeEntry.mutateAsync(confirmEntry.id);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete');
+    }
+  };
 
   const totalTodaySeconds =
     todayEntries?.entries.reduce((total, entry) => {
@@ -163,11 +190,14 @@ export function DashboardPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Duration
                   </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {recentEntries?.entries.slice(0, 5).map((entry) => (
-                  <tr key={entry.id}>
+                  <tr key={entry.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center">
                         <ProjectColorDot color={entry.project.color} />
@@ -181,12 +211,16 @@ export function DashboardPage() {
                         </div>
                       </div>
                     </td>
-                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                       <div>{formatDate(entry.startTime)}</div>
-                       <div className="text-xs text-gray-400">{formatTime(entry.startTime)} – {formatTime(entry.endTime)}</div>
-                     </td>
-                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-mono">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                      <div>{formatDate(entry.startTime)}</div>
+                      <div className="text-xs text-gray-400">{formatTime(entry.startTime)} – {formatTime(entry.endTime)}</div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-mono">
                       {formatDurationFromDatesHoursMinutes(entry.startTime, entry.endTime)}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right">
+                      <button onClick={() => handleOpenModal(entry)} className="p-1.5 text-gray-400 hover:text-gray-600 mr-1"><Edit2 className="h-4 w-4" /></button>
+                      <button onClick={() => setConfirmEntry(entry)} className="p-1.5 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                     </td>
                   </tr>
                 ))}
@@ -195,6 +229,24 @@ export function DashboardPage() {
           </div>
         )}
       </div>
+
+      {isModalOpen && (
+        <TimeEntryFormModal
+          entry={editingEntry}
+          onClose={handleCloseModal}
+          createTimeEntry={createTimeEntry}
+          updateTimeEntry={updateTimeEntry}
+        />
+      )}
+
+      {confirmEntry && (
+        <ConfirmModal
+          title="Delete Entry"
+          message="Are you sure you want to delete this time entry?"
+          onConfirm={handleDeleteConfirmed}
+          onClose={() => setConfirmEntry(null)}
+        />
+      )}
     </div>
   );
 }
