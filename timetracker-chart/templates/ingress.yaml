@@ -26,14 +26,6 @@ spec:
                 name: {{ include "timetracker.fullname" $ }}-backend
                 port:
                   number: {{ $.Values.backend.service.port }}
-          # Auth routes
-          - path: /auth
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ include "timetracker.fullname" $ }}-backend
-                port:
-                  number: {{ $.Values.backend.service.port }}
           # Frontend (catch-all)
           - path: /
             pathType: Prefix

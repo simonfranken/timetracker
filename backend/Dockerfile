@@ -36,9 +36,9 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 # Copy compiled application
 COPY --from=builder /app/dist ./dist
 
-# Run as non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
+# Run as non-root user (numeric UID required by Kubernetes runAsNonRoot)
+RUN addgroup -S -g 1001 appgroup && adduser -S -u 1001 -G appgroup appuser
+USER 1001
 
 EXPOSE 3001
 
