@@ -9,22 +9,22 @@ enum APIEndpoint {
     static let me = "/auth/me"
     
     // Clients
-    static let clients = "/api/clients"
-    static func client(id: String) -> String { "/api/clients/\(id)" }
+    static let clients = "/clients"
+    static func client(id: String) -> String { "/clients/\(id)" }
     
     // Projects
-    static let projects = "/api/projects"
-    static func project(id: String) -> String { "/api/projects/\(id)" }
+    static let projects = "/projects"
+    static func project(id: String) -> String { "/projects/\(id)" }
     
     // Time Entries
-    static let timeEntries = "/api/time-entries"
-    static let timeEntriesStatistics = "/api/time-entries/statistics"
-    static func timeEntry(id: String) -> String { "/api/time-entries/\(id)" }
+    static let timeEntries = "/time-entries"
+    static let timeEntriesStatistics = "/time-entries/statistics"
+    static func timeEntry(id: String) -> String { "/time-entries/\(id)" }
     
     // Timer
-    static let timer = "/api/timer"
-    static let timerStart = "/api/timer/start"
-    static let timerStop = "/api/timer/stop"
+    static let timer = "/timer"
+    static let timerStart = "/timer/start"
+    static let timerStop = "/timer/stop"
 }
 
 struct APIEndpoints {

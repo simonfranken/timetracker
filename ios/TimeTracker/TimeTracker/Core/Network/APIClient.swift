@@ -60,10 +60,11 @@ actor APIClient {
             }
             
             if httpResponse.statusCode == 401 {
+                let message = try? decoder.decode(ErrorResponse.self, from: data).error
                 await MainActor.run {
                     AuthManager.shared.clearAuth()
                 }
-                throw NetworkError.unauthorized
+                throw NetworkError.httpError(statusCode: 401, message: message)
             }
             
             guard (200...299).contains(httpResponse.statusCode) else {
@@ -131,10 +132,11 @@ actor APIClient {
             }
             
             if httpResponse.statusCode == 401 {
+                let message = try? decoder.decode(ErrorResponse.self, from: data).error
                 await MainActor.run {
                     AuthManager.shared.clearAuth()
                 }
-                throw NetworkError.unauthorized
+                throw NetworkError.httpError(statusCode: 401, message: message)
             }
             
             guard (200...299).contains(httpResponse.statusCode) else {

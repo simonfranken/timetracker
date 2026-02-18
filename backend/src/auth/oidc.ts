@@ -170,10 +170,27 @@ export async function verifyToken(tokenSet: TokenSet): Promise<boolean> {
   }
 }
 
+// Cache userinfo responses to avoid hitting the OIDC provider on every request.
+// Entries expire after 5 minutes. The cache is keyed by the raw access token.
+const userinfoCache = new Map<string, { user: AuthenticatedUser; expiresAt: number }>();
+const USERINFO_CACHE_TTL_MS = 5 * 60 * 1000;
+
 export async function verifyBearerToken(accessToken: string): Promise<AuthenticatedUser> {
+  const cached = userinfoCache.get(accessToken);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.user;
+  }
+
   const client = getOIDCClient();
 
-  const userInfo = await client.userinfo(accessToken);
+  let userInfo: Awaited<ReturnType<typeof client.userinfo>>;
+  try {
+    userInfo = await client.userinfo(accessToken);
+  } catch (err) {
+    // Remove any stale cache entry for this token
+    userinfoCache.delete(accessToken);
+    throw err;
+  }
 
   const id = String(userInfo.sub);
   const username = String(userInfo.preferred_username || userInfo.name || id);
@@ -184,5 +201,7 @@ export async function verifyBearerToken(accessToken: string): Promise<Authentica
     throw new Error('Email not provided by OIDC provider');
   }
 
-  return { id, username, fullName, email };
+  const user: AuthenticatedUser = { id, username, fullName, email };
+  userinfoCache.set(accessToken, { user, expiresAt: Date.now() + USERINFO_CACHE_TTL_MS });
+  return user;
 }

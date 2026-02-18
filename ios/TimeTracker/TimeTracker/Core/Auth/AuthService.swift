@@ -198,7 +198,7 @@ extension Notification.Name {
 
 struct TokenResponse: Codable {
     let accessToken: String
-    let idToken: String
+    let idToken: String?
     let tokenType: String
     let expiresIn: Int?
     let user: User
