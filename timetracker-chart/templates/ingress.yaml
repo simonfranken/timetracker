@@ -19,16 +19,17 @@ spec:
       http:
         paths:
           # Backend API routes first (more specific)
-          - path: /api
-            pathType: Prefix
+          # $2 capture group strips the /api prefix via rewrite-target annotation
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: {{ include "timetracker.fullname" $ }}-backend
                 port:
                   number: {{ $.Values.backend.service.port }}
           # Frontend (catch-all)
-          - path: /
-            pathType: Prefix
+          - path: /()(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: {{ include "timetracker.fullname" $ }}-frontend
