@@ -12,7 +12,7 @@ final class AuthService: NSObject {
         super.init()
     }
     
-    func login(presentationAnchor: ASPresentationAnchor) async throws -> URL? {
+    func login(presentationAnchor: ASPresentationAnchor) async throws {
         self.presentationAnchor = presentationAnchor
         
         let codeVerifier = generateCodeVerifier()
@@ -44,14 +44,31 @@ final class AuthService: NSObject {
             callbackURLScheme: callbackScheme
         ) { [weak self] callbackURL, error in
             if let error = error {
+                let authError: AuthError
                 if (error as? ASWebAuthenticationSessionError)?.code == .canceledLogin {
-                    throw AuthError.cancelled
+                    authError = .cancelled
+                } else {
+                    authError = .failed(error.localizedDescription)
                 }
-                throw AuthError.failed(error.localizedDescription)
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(
+                        name: .authError,
+                        object: nil,
+                        userInfo: ["error": authError]
+                    )
+                }
+                return
             }
             
             guard let callbackURL = callbackURL else {
-                throw AuthError.noCallback
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(
+                        name: .authError,
+                        object: nil,
+                        userInfo: ["error": AuthError.noCallback]
+                    )
+                }
+                return
             }
             
             self?.handleCallback(url: callbackURL, session: session)
@@ -62,10 +79,14 @@ final class AuthService: NSObject {
         
         self.authSession = webAuthSession
         
-        return await withCheckedContinuation { continuation in
-            webAuthSession.start { started in
-                if !started {
-                    continuation.resume(returning: nil)
+        webAuthSession.start { started in
+            if !started {
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(
+                        name: .authError,
+                        object: nil,
+                        userInfo: ["error": AuthError.failed("Failed to start auth session")]
+                    )
                 }
             }
         }
@@ -138,4 +159,5 @@ enum AuthError: LocalizedError {
 
 extension Notification.Name {
     static let authCallbackReceived = Notification.Name("authCallbackReceived")
+    static let authError = Notification.Name("authError")
 }
