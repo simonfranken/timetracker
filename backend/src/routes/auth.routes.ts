@@ -96,10 +96,10 @@ router.post("/token", async (req, res) => {
   try {
     await ensureOIDC();
 
-    const { code, state, code_verifier, redirect_uri } = req.body;
+    const { code, state, redirect_uri } = req.body;
 
-    if (!code || !state || !code_verifier || !redirect_uri) {
-      res.status(400).json({ error: "Missing required parameters: code, state, code_verifier, redirect_uri" });
+    if (!code || !state || !redirect_uri) {
+      res.status(400).json({ error: "Missing required parameters: code, state, redirect_uri" });
       return;
     }
 

@@ -138,13 +138,11 @@ final class AuthService: NSObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // code_verifier is intentionally omitted — the backend uses its own verifier
-        // that was generated during /auth/login and stored in the server-side session.
         // state is sent so the backend can look up and validate the original session.
+        // code_verifier is not sent — the backend uses its own verifier from the session.
         let body: [String: Any] = [
             "code": code,
             "state": state,
-            "code_verifier": "", // kept for API compatibility; backend ignores it
             "redirect_uri": redirectUri
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
