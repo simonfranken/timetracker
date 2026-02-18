@@ -71,9 +71,6 @@ frontend:
       cpu: 50m
       memory: 64Mi
 
-  env:
-    apiUrl: "/api"
-
 # Ingress Configuration
 ingress:
   enabled: true
