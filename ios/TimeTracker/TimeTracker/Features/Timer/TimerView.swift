@@ -44,10 +44,15 @@ struct TimerView: View {
                     .font(.system(size: 64, weight: .light, design: .monospaced))
                     .foregroundStyle(viewModel.activeTimer != nil ? .primary : .secondary)
                 
-                if let project = viewModel.selectedProject ?? viewModel.activeTimer?.project {
+                if let project = viewModel.selectedProject {
                     ProjectColorBadge(
                         color: project.color,
                         name: project.name
+                    )
+                } else if let timerProject = viewModel.activeTimer?.project {
+                    ProjectColorBadge(
+                        color: timerProject.color,
+                        name: timerProject.name
                     )
                 } else {
                     Text("No project selected")
@@ -137,7 +142,7 @@ struct ProjectPickerSheet: View {
                             .foregroundStyle(.primary)
                         if selectedProject == nil {
                             Image(systemName: "checkmark")
-                                .foregroundStyle(.accent)
+                                .foregroundStyle(Color.accentColor)
                         }
                     }
                 }
@@ -155,7 +160,7 @@ struct ProjectPickerSheet: View {
                                 .foregroundStyle(.secondary)
                             if selectedProject?.id == project.id {
                                 Image(systemName: "checkmark")
-                                    .foregroundStyle(.accent)
+                                .foregroundStyle(Color.accentColor)
                             }
                         }
                     }

@@ -1,6 +1,6 @@
 import Foundation
 
-struct Project: Codable, Identifiable, Equatable {
+struct Project: Codable, Identifiable, Equatable, Hashable {
     let id: String
     let name: String
     let description: String?
@@ -11,7 +11,7 @@ struct Project: Codable, Identifiable, Equatable {
     let updatedAt: String
 }
 
-struct ClientReference: Codable, Equatable {
+struct ClientReference: Codable, Equatable, Hashable {
     let id: String
     let name: String
 }

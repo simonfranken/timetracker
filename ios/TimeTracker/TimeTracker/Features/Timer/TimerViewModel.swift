@@ -102,7 +102,7 @@ final class TimerViewModel: ObservableObject {
         
         do {
             let input = StopTimerInput(projectId: projectId)
-            _ = try await apiClient.request(
+            try await apiClient.requestVoid(
                 endpoint: APIEndpoint.timerStop,
                 method: .post,
                 body: input,

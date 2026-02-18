@@ -17,6 +17,7 @@ export const config = {
     redirectUri:
       process.env.OIDC_REDIRECT_URI ||
       "http://localhost:3001/api/auth/callback",
+    iosRedirectUri: process.env.OIDC_IOS_REDIRECT_URI || "timetracker://oauth/callback",
   },
 
   session: {

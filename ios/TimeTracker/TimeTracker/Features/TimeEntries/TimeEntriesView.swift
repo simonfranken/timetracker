@@ -79,7 +79,7 @@ struct TimeEntryRow: View {
             }
             
             HStack {
-                Text(formatDateRange(entry.startTime, entry.endTime))
+                Text(formatDateRange(start: entry.startTime, end: entry.endTime))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()

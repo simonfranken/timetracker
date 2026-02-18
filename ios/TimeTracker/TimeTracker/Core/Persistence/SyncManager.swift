@@ -22,7 +22,7 @@ final class SyncManager: ObservableObject {
             DispatchQueue.main.async {
                 self?.isOnline = path.status == .satisfied
                 if path.status == .satisfied {
-                    self?.syncPendingChanges()
+                    Task { await self?.syncPendingChanges() }
                 }
             }
         }

@@ -8,9 +8,14 @@ export async function initializeOIDC(): Promise<void> {
   try {
     const issuer = await Issuer.discover(config.oidc.issuerUrl);
     
+    const redirectUris = [config.oidc.redirectUri];
+    if (config.oidc.iosRedirectUri) {
+      redirectUris.push(config.oidc.iosRedirectUri);
+    }
+    
     oidcClient = new issuer.Client({
       client_id: config.oidc.clientId,
-      redirect_uris: [config.oidc.redirectUri],
+      redirect_uris: redirectUris,
       response_types: ['code'],
       token_endpoint_auth_method: 'none', // PKCE flow - no client secret
     });
@@ -33,27 +38,35 @@ export interface AuthSession {
   codeVerifier: string;
   state: string;
   nonce: string;
+  redirectUri?: string;
 }
 
-export function createAuthSession(): AuthSession {
+export function createAuthSession(redirectUri?: string): AuthSession {
   return {
     codeVerifier: generators.codeVerifier(),
     state: generators.state(),
     nonce: generators.nonce(),
+    redirectUri,
   };
 }
 
-export function getAuthorizationUrl(session: AuthSession): string {
+export function getAuthorizationUrl(session: AuthSession, redirectUri?: string): string {
   const client = getOIDCClient();
   const codeChallenge = generators.codeChallenge(session.codeVerifier);
   
-  return client.authorizationUrl({
+  const params: Record<string, string> = {
     scope: 'openid profile email',
     state: session.state,
     nonce: session.nonce,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
-  });
+  };
+  
+  if (redirectUri) {
+    params.redirect_uri = redirectUri;
+  }
+  
+  return client.authorizationUrl(params);
 }
 
 export async function handleCallback(
@@ -62,8 +75,10 @@ export async function handleCallback(
 ): Promise<TokenSet> {
   const client = getOIDCClient();
   
+  const redirectUri = session.redirectUri || config.oidc.redirectUri;
+  
   const tokenSet = await client.callback(
-    config.oidc.redirectUri,
+    redirectUri,
     params,
     {
       code_verifier: session.codeVerifier,
@@ -114,4 +129,21 @@ export async function verifyToken(tokenSet: TokenSet): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export async function verifyBearerToken(accessToken: string): Promise<AuthenticatedUser> {
+  const client = getOIDCClient();
+
+  const userInfo = await client.userinfo(accessToken);
+
+  const id = String(userInfo.sub);
+  const username = String(userInfo.preferred_username || userInfo.name || id);
+  const email = String(userInfo.email || '');
+  const fullName = String(userInfo.name || '') || null;
+
+  if (!email) {
+    throw new Error('Email not provided by OIDC provider');
+  }
+
+  return { id, username, fullName, email };
 }

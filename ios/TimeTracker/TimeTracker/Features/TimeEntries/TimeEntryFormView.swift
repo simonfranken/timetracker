@@ -119,11 +119,11 @@ struct TimeEntryFormView: View {
         let startDateTime = calendar.date(bySettingHour: calendar.component(.hour, from: startTime),
                                          minute: calendar.component(.minute, from: startTime),
                                          second: 0,
-                                         on: startDate) ?? startDate
+                                         of: startDate) ?? startDate
         let endDateTime = calendar.date(bySettingHour: calendar.component(.hour, from: endTime),
                                         minute: calendar.component(.minute, from: endTime),
                                         second: 0,
-                                        on: endDate) ?? endDate
+                                        of: endDate) ?? endDate
         
         Task {
             do {
@@ -134,7 +134,7 @@ struct TimeEntryFormView: View {
                         description: description.isEmpty ? nil : description,
                         projectId: project.id
                     )
-                    _ = try await apiClient.request(
+                    try await apiClient.requestVoid(
                         endpoint: APIEndpoint.timeEntry(id: existingEntry.id),
                         method: .put,
                         body: input,
@@ -147,7 +147,7 @@ struct TimeEntryFormView: View {
                         description: description.isEmpty ? nil : description,
                         projectId: project.id
                     )
-                    _ = try await apiClient.request(
+                    try await apiClient.requestVoid(
                         endpoint: APIEndpoint.timeEntries,
                         method: .post,
                         body: input,
@@ -161,9 +161,10 @@ struct TimeEntryFormView: View {
                     onSave()
                 }
             } catch {
+                let errorMessage = error.localizedDescription
                 await MainActor.run {
                     isLoading = false
-                    error = error.localizedDescription
+                    self.error = errorMessage
                 }
             }
         }

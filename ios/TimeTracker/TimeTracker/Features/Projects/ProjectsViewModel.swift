@@ -50,7 +50,7 @@ final class ProjectsViewModel: ObservableObject {
                 color: color,
                 clientId: clientId
             )
-            _ = try await apiClient.request(
+            try await apiClient.requestVoid(
                 endpoint: APIEndpoint.projects,
                 method: .post,
                 body: input,
@@ -74,7 +74,7 @@ final class ProjectsViewModel: ObservableObject {
                 color: color,
                 clientId: clientId
             )
-            _ = try await apiClient.request(
+            try await apiClient.requestVoid(
                 endpoint: APIEndpoint.project(id: id),
                 method: .put,
                 body: input,

@@ -81,11 +81,9 @@ struct LoginView: View {
     }
     
     private func handleAuthCallback(_ userInfo: [AnyHashable: Any]?) {
-        Task {
-            await authManager.checkAuthState()
-            await MainActor.run {
-                isLoading = false
-            }
-        }
+        // AuthManager.handleTokenResponse() already set isAuthenticated = true
+        // and populated currentUser during the token exchange in AuthService.
+        // No further network call is needed here.
+        isLoading = false
     }
 }

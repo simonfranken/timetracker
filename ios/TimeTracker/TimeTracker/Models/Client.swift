@@ -1,6 +1,6 @@
 import Foundation
 
-struct Client: Codable, Identifiable, Equatable {
+struct Client: Codable, Identifiable, Equatable, Hashable {
     let id: String
     let name: String
     let description: String?

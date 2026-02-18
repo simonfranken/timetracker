@@ -1,19 +1,34 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma/client';
 import type { AuthenticatedRequest, AuthenticatedUser } from '../types';
+import { getOIDCClient, verifyBearerToken } from '../auth/oidc';
 
-export function requireAuth(
+export async function requireAuth(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-): void {
-  if (!req.session?.user) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
+): Promise<void> {
+  // 1. Session-based auth (web frontend)
+  if (req.session?.user) {
+    req.user = req.session.user as AuthenticatedUser;
+    return next();
   }
-  
-  req.user = req.session.user as AuthenticatedUser;
-  next();
+
+  // 2. Bearer token auth (iOS / native clients)
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    const accessToken = authHeader.slice(7);
+    try {
+      const user = await verifyBearerToken(accessToken);
+      req.user = user;
+      return next();
+    } catch {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+  }
+
+  res.status(401).json({ error: 'Unauthorized' });
 }
 
 export function optionalAuth(

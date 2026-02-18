@@ -4,6 +4,7 @@ enum APIEndpoint {
     // Auth
     static let login = "/auth/login"
     static let callback = "/auth/callback"
+    static let token = "/auth/token"
     static let logout = "/auth/logout"
     static let me = "/auth/me"
     

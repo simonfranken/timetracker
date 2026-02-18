@@ -81,6 +81,13 @@ final class AuthManager: ObservableObject {
         isAuthenticated = false
     }
     
+    func handleTokenResponse(_ response: TokenResponse) async {
+        accessToken = response.accessToken
+        idToken = response.idToken
+        currentUser = response.user
+        isAuthenticated = true
+    }
+    
     var loginURL: URL {
         APIEndpoints.url(for: APIEndpoint.login)
     }

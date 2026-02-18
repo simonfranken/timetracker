@@ -39,12 +39,12 @@ struct Pagination: Codable, Equatable {
 }
 
 struct TimeEntryFilters: Codable {
-    let startDate: String?
-    let endDate: String?
-    let projectId: String?
-    let clientId: String?
-    let page: Int?
-    let limit: Int?
+    var startDate: String?
+    var endDate: String?
+    var projectId: String?
+    var clientId: String?
+    var page: Int?
+    var limit: Int?
     
     init(
         startDate: Date? = nil,

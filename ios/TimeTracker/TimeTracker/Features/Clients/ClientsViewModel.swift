@@ -38,7 +38,7 @@ final class ClientsViewModel: ObservableObject {
         
         do {
             let input = CreateClientInput(name: name, description: description)
-            _ = try await apiClient.request(
+            try await apiClient.requestVoid(
                 endpoint: APIEndpoint.clients,
                 method: .post,
                 body: input,
@@ -57,7 +57,7 @@ final class ClientsViewModel: ObservableObject {
         
         do {
             let input = UpdateClientInput(name: name, description: description)
-            _ = try await apiClient.request(
+            try await apiClient.requestVoid(
                 endpoint: APIEndpoint.client(id: id),
                 method: .put,
                 body: input,

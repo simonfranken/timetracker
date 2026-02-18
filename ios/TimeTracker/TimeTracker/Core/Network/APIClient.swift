@@ -41,7 +41,8 @@ actor APIClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         
         if authenticated {
-            guard let token = AuthManager.shared.accessToken else {
+            let token = await MainActor.run { AuthManager.shared.accessToken }
+            guard let token = token else {
                 throw NetworkError.unauthorized
             }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -111,7 +112,8 @@ actor APIClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         
         if authenticated {
-            guard let token = AuthManager.shared.accessToken else {
+            let token = await MainActor.run { AuthManager.shared.accessToken }
+            guard let token = token else {
                 throw NetworkError.unauthorized
             }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
