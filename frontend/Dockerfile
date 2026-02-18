@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-alpine as builder
+FROM node:20-alpine AS builder
 
 ARG VITE_API_URL
 ENV VITE_API_URL=${VITE_API_URL}
