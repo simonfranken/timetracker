@@ -30,8 +30,26 @@ spec:
               value: {{ .Values.backend.env.nodeEnv | quote }}
             - name: PORT
               value: {{ .Values.backend.env.port | quote }}
+            - name: PG_USERNAME
+              {{- if .Values.postgresql.auth.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresql.auth.existingSecret }}
+                  key: username
+              {{- else }}
+              value: {{ .Values.postgresql.auth.username | quote }}
+              {{- end }}
+            - name: PG_PASSWORD
+              {{- if .Values.postgresql.auth.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresql.auth.existingSecret }}
+                  key: password
+              {{- else }}
+              value: {{ .Values.postgresql.auth.password | quote }}
+              {{- end }}
             - name: DATABASE_URL
-              value: "postgresql://{{ .Values.postgresql.auth.username }}:{{ .Values.postgresql.auth.password }}@{{ include "timetracker.fullname" . }}-postgresql:5432/{{ .Values.postgresql.auth.database }}"
+              value: "postgresql://$(PG_USERNAME):$(PG_PASSWORD)@{{ .Values.postgresql.host }}:{{ .Values.postgresql.port }}/{{ .Values.postgresql.database }}"
             - name: OIDC_ISSUER_URL
               value: {{ .Values.backend.oidc.issuerUrl | quote }}
             - name: OIDC_CLIENT_ID

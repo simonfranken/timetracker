@@ -62,14 +62,6 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
-PostgreSQL labels
-*/}}
-{{- define "timetracker.postgresql.labels" -}}
-{{ include "timetracker.labels" . }}
-app.kubernetes.io/component: postgresql
-{{- end }}
-
-{{/*
 Backend labels
 */}}
 {{- define "timetracker.backend.labels" -}}
@@ -101,10 +93,3 @@ Frontend selector labels
 app.kubernetes.io/component: frontend
 {{- end }}
 
-{{/*
-PostgreSQL selector labels
-*/}}
-{{- define "timetracker.postgresql.selectorLabels" -}}
-{{ include "timetracker.selectorLabels" . }}
-app.kubernetes.io/component: postgresql
-{{- end }}','description':'Creates a comprehensive helpers.tpl file with standard Kubernetes naming conventions and label helpers for timetracker application components'}] <|tool_calls_section_begin|><|tool_call_begin|>functions.create_new_file:48<|tool_call_argument_begin|>{

@@ -1,31 +1,20 @@
 # Default values for timetracker
 
-# PostgreSQL Configuration
+# External PostgreSQL Configuration
+# PREREQUISITE: An existing PostgreSQL database must be provisioned before installing this chart.
 postgresql:
-  enabled: true
-  image:
-    repository: postgres
-    tag: "16-alpine"
-    pullPolicy: IfNotPresent
+  host: "postgres"
+  port: 5432
+  database: "timetracker"
 
+  # Provide credentials either inline or from an existing secret.
+  # If auth.existingSecret is set, username and password are read from that
+  # secret using the keys "username" and "password". The inline auth.username
+  # and auth.password values are ignored in that case.
   auth:
-    username: timetracker
-    password: timetracker_password
-    database: timetracker
-
-  persistence:
-    enabled: true
-    storageClass: ""
-    accessMode: ReadWriteOnce
-    size: 10Gi
-
-  resources:
-    limits:
-      cpu: 1000m
-      memory: 1Gi
-    requests:
-      cpu: 250m
-      memory: 256Mi
+    username: "timetracker"
+    password: "timetracker_password"
+    existingSecret: ""
 
 # Backend Configuration
 backend:

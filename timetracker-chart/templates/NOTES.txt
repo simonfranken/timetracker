@@ -24,12 +24,13 @@ APP VERSION: {{ .Chart.AppVersion }}
 2. Check the status of the pods:
   kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "timetracker.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
 
-3. PostgreSQL Credentials:
-  Username: {{ .Values.postgresql.auth.username }}
-  Password: {{ .Values.postgresql.auth.password }}
-  Database: {{ .Values.postgresql.auth.database }}
+3. External PostgreSQL:
+  This chart requires an existing PostgreSQL database.
+  Configured connection: {{ .Values.postgresql.url }}
 
 IMPORTANT NOTES:
+- Ensure your external PostgreSQL database is reachable from within the cluster before installing.
+- Set postgresql.url in values.yaml to point to your existing database.
 - Make sure to change the OIDC configuration in values.yaml
 - Change the SESSION_SECRET from the default value for production
 - Configure ingress host and TLS settings for your environment
