@@ -103,35 +103,61 @@ export async function handleCallback(
   return tokenSet;
 }
 
+// For native app flows the provider may return only an access token (no ID token)
+// when the redirect_uri uses a custom scheme. client.grant() calls the token
+// endpoint directly and does not attempt ID token validation.
+export async function exchangeNativeCode(
+  code: string,
+  codeVerifier: string,
+  redirectUri: string,
+): Promise<TokenSet> {
+  const client = getOIDCClient();
+
+  const tokenSet = await client.grant({
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: redirectUri,
+    code_verifier: codeVerifier,
+  });
+
+  return tokenSet;
+}
+
 export async function getUserInfo(tokenSet: TokenSet): Promise<AuthenticatedUser> {
   const client = getOIDCClient();
-  
-  const claims = tokenSet.claims();
-  
-  // Try to get more detailed userinfo if available
+
+  // ID token claims (only available in web/full OIDC flow)
+  const idTokenClaims = tokenSet.id_token ? tokenSet.claims() : undefined;
+
+  // Always attempt userinfo; for native flows this is the sole source of claims.
   let userInfo: Record<string, unknown> = {};
   try {
     userInfo = await client.userinfo(tokenSet);
   } catch {
-    // Some providers don't support userinfo endpoint
-    // We'll use the claims from the ID token
+    if (!idTokenClaims) {
+      // No ID token and no userinfo — nothing to work with.
+      throw new Error('Unable to retrieve user info: userinfo endpoint failed and no ID token present');
+    }
+    // Web flow: fall back to ID token claims only
   }
-  
-  const id = String(claims.sub);
-  const username = String(userInfo.preferred_username || claims.preferred_username || claims.name || id);
-  const email = String(userInfo.email || claims.email || '');
-  const fullName = String(userInfo.name || claims.name || '') || null;
-  
+
+  const sub = String(userInfo.sub || idTokenClaims?.sub);
+  const id = sub;
+  const username = String(
+    userInfo.preferred_username ||
+    idTokenClaims?.preferred_username ||
+    userInfo.name ||
+    idTokenClaims?.name ||
+    id
+  );
+  const email = String(userInfo.email || idTokenClaims?.email || '');
+  const fullName = String(userInfo.name || idTokenClaims?.name || '') || null;
+
   if (!email) {
     throw new Error('Email not provided by OIDC provider');
   }
-  
-  return {
-    id,
-    username,
-    fullName,
-    email,
-  };
+
+  return { id, username, fullName, email };
 }
 
 export async function verifyToken(tokenSet: TokenSet): Promise<boolean> {

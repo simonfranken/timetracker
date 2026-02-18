@@ -4,6 +4,7 @@ import {
   createAuthSession,
   getAuthorizationUrl,
   handleCallback,
+  exchangeNativeCode,
   getUserInfo,
 } from "../auth/oidc";
 import { requireAuth, syncUser } from "../middleware/auth";
@@ -138,14 +139,7 @@ router.post("/token", async (req, res) => {
       return;
     }
 
-    const session = {
-      codeVerifier: oidcSession.codeVerifier,
-      state: oidcSession.state,
-      nonce: oidcSession.nonce,
-      redirectUri: redirect_uri,
-    };
-
-    const tokenSet = await handleCallback({ code, state }, session);
+    const tokenSet = await exchangeNativeCode(code, oidcSession.codeVerifier, redirect_uri);
 
     const user = await getUserInfo(tokenSet);
     await syncUser(user);
