@@ -5,7 +5,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { Modal } from '@/components/Modal';
 import { Spinner } from '@/components/Spinner';
 import { ProjectColorDot } from '@/components/ProjectColorDot';
-import { formatDate, formatDurationFromDates, getLocalISOString, toISOTimezone } from '@/utils/dateUtils';
+import { formatDate, formatDurationFromDatesHoursMinutes, getLocalISOString, toISOTimezone } from '@/utils/dateUtils';
 import type { TimeEntry, CreateTimeEntryInput, UpdateTimeEntryInput } from '@/types';
 
 export function TimeEntriesPage() {
@@ -127,7 +127,7 @@ export function TimeEntriesPage() {
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900">{formatDurationFromDates(entry.startTime, entry.endTime)}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900">{formatDurationFromDatesHoursMinutes(entry.startTime, entry.endTime)}</td>
                 <td className="px-4 py-3 whitespace-nowrap text-right">
                   <button onClick={() => handleOpenModal(entry)} className="p-1.5 text-gray-400 hover:text-gray-600 mr-1"><Edit2 className="h-4 w-4" /></button>
                   <button onClick={() => handleDelete(entry)} className="p-1.5 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>

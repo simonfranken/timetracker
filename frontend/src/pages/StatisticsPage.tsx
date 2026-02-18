@@ -10,7 +10,7 @@ import { useStatistics } from "@/hooks/useTimeEntries";
 import { useClients } from "@/hooks/useClients";
 import { useProjects } from "@/hooks/useProjects";
 import { ProjectColorDot } from "@/components/ProjectColorDot";
-import { formatDuration, toISOTimezone } from "@/utils/dateUtils";
+import { formatDurationHoursMinutes, toISOTimezone } from "@/utils/dateUtils";
 import type { StatisticsFilters } from "@/types";
 
 export function StatisticsPage() {
@@ -166,7 +166,7 @@ export function StatisticsPage() {
                 {isLoading ? (
                   <span className="text-2xl">Loading...</span>
                 ) : (
-                  formatDuration(statistics?.totalSeconds || 0)
+                  formatDurationHoursMinutes(statistics?.totalSeconds || 0)
                 )}
               </p>
             </div>
@@ -202,7 +202,7 @@ export function StatisticsPage() {
                   </span>
                 </div>
                 <span className="font-mono font-semibold text-gray-900">
-                  {formatDuration(project.totalSeconds)}
+                  {formatDurationHoursMinutes(project.totalSeconds)}
                 </span>
               </div>
             ))}
@@ -232,7 +232,7 @@ export function StatisticsPage() {
                   </span>
                 </div>
                 <span className="font-mono font-semibold text-gray-900">
-                  {formatDuration(client.totalSeconds)}
+                  {formatDurationHoursMinutes(client.totalSeconds)}
                 </span>
               </div>
             ))}

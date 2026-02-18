@@ -57,6 +57,14 @@ export function formatDurationFromDates(
   return formatDuration(seconds);
 }
 
+export function formatDurationFromDatesHoursMinutes(
+  startTime: string,
+  endTime: string,
+): string {
+  const seconds = calculateDuration(startTime, endTime);
+  return formatDurationHoursMinutes(seconds);
+}
+
 export function getLocalISOString(date: Date = new Date()): string {
   const timezoneOffset = date.getTimezoneOffset() * 60000;
   const localISOTime = new Date(date.getTime() - timezoneOffset)

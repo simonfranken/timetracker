@@ -1,12 +1,41 @@
-import { useState } from 'react';
-import { Play, Square, ChevronDown } from 'lucide-react';
-import { useTimer } from '@/contexts/TimerContext';
-import { useProjects } from '@/hooks/useProjects';
-import { formatDuration } from '@/utils/dateUtils';
-import { ProjectColorDot } from '@/components/ProjectColorDot';
+import { useState } from "react";
+import { Play, Square, ChevronDown } from "lucide-react";
+import { useTimer } from "@/contexts/TimerContext";
+import { useProjects } from "@/hooks/useProjects";
+import { ProjectColorDot } from "@/components/ProjectColorDot";
+
+function TimerDisplay({ totalSeconds }: { totalSeconds: number }) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const pad = (n: number) => n.toString().padStart(2, "0");
+
+  return (
+    <span className="text-2xl font-mono font-bold text-gray-900">
+      {hours > 0 && (
+        <>
+          <span className="mr-0.5">{pad(hours)}</span>
+          <span className="text-base font-normal text-gray-500 mr-1.5">h</span>
+        </>
+      )}
+      <span className="mr-0.5">{pad(minutes)}</span>
+      <span className="text-base font-normal text-gray-500 mr-1.5">m</span>
+      <span className="mr-0.5">{pad(seconds)}</span>
+      <span className="text-base font-normal text-gray-500">s</span>
+    </span>
+  );
+}
 
 export function TimerWidget() {
-  const { ongoingTimer, isLoading, elapsedSeconds, startTimer, stopTimer, updateTimerProject } = useTimer();
+  const {
+    ongoingTimer,
+    isLoading,
+    elapsedSeconds,
+    startTimer,
+    stopTimer,
+    updateTimerProject,
+  } = useTimer();
   const { projects } = useProjects();
   const [showProjectSelect, setShowProjectSelect] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +45,7 @@ export function TimerWidget() {
     try {
       await startTimer();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start timer');
+      setError(err instanceof Error ? err.message : "Failed to start timer");
     }
   };
 
@@ -25,7 +54,7 @@ export function TimerWidget() {
     try {
       await stopTimer();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to stop timer');
+      setError(err instanceof Error ? err.message : "Failed to stop timer");
     }
   };
 
@@ -35,7 +64,7 @@ export function TimerWidget() {
       await updateTimerProject(projectId);
       setShowProjectSelect(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update project');
+      setError(err instanceof Error ? err.message : "Failed to update project");
     }
   };
 
@@ -45,7 +74,7 @@ export function TimerWidget() {
       await updateTimerProject(null);
       setShowProjectSelect(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to clear project');
+      setError(err instanceof Error ? err.message : "Failed to clear project");
     }
   };
 
@@ -68,9 +97,7 @@ export function TimerWidget() {
             <div className="flex items-center space-x-4 flex-1">
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-2xl font-mono font-bold text-gray-900">
-                  {formatDuration(elapsedSeconds)}
-                </span>
+                <TimerDisplay totalSeconds={elapsedSeconds} />
               </div>
 
               {/* Project Selector */}
@@ -110,8 +137,12 @@ export function TimerWidget() {
                       >
                         <ProjectColorDot color={project.color} />
                         <div className="min-w-0">
-                          <div className="font-medium text-gray-900 truncate">{project.name}</div>
-                          <div className="text-xs text-gray-500 truncate">{project.client.name}</div>
+                          <div className="font-medium text-gray-900 truncate">
+                            {project.name}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">
+                            {project.client.name}
+                          </div>
                         </div>
                       </button>
                     ))}
