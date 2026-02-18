@@ -63,7 +63,7 @@ final class SyncManager: ObservableObject {
             switch item.action {
             case "create":
                 let input = try decoder.decode(CreateTimeEntryInput.self, from: data)
-                _ = try await apiClient.request(
+                try await apiClient.requestVoid(
                     endpoint: APIEndpoint.timeEntries,
                     method: .post,
                     body: input,
@@ -75,14 +75,14 @@ final class SyncManager: ObservableObject {
                     let input: UpdateTimeEntryInput
                 }
                 let request = try decoder.decode(UpdateRequest.self, from: data)
-                _ = try await apiClient.request(
+                try await apiClient.requestVoid(
                     endpoint: APIEndpoint.timeEntry(id: request.id),
                     method: .put,
                     body: request.input,
                     authenticated: true
                 )
             case "delete":
-                _ = try await apiClient.requestVoid(
+                try await apiClient.requestVoid(
                     endpoint: APIEndpoint.timeEntry(id: item.id),
                     method: .delete,
                     authenticated: true
@@ -96,7 +96,7 @@ final class SyncManager: ObservableObject {
             switch item.action {
             case "create":
                 let input = try decoder.decode(CreateClientInput.self, from: data)
-                _ = try await apiClient.request(
+                try await apiClient.requestVoid(
                     endpoint: APIEndpoint.clients,
                     method: .post,
                     body: input,
@@ -108,14 +108,14 @@ final class SyncManager: ObservableObject {
                     let input: UpdateClientInput
                 }
                 let request = try decoder.decode(UpdateRequest.self, from: data)
-                _ = try await apiClient.request(
+                try await apiClient.requestVoid(
                     endpoint: APIEndpoint.client(id: request.id),
                     method: .put,
                     body: request.input,
                     authenticated: true
                 )
             case "delete":
-                _ = try await apiClient.requestVoid(
+                try await apiClient.requestVoid(
                     endpoint: APIEndpoint.client(id: item.id),
                     method: .delete,
                     authenticated: true
@@ -129,7 +129,7 @@ final class SyncManager: ObservableObject {
             switch item.action {
             case "create":
                 let input = try decoder.decode(CreateProjectInput.self, from: data)
-                _ = try await apiClient.request(
+                try await apiClient.requestVoid(
                     endpoint: APIEndpoint.projects,
                     method: .post,
                     body: input,
@@ -141,14 +141,14 @@ final class SyncManager: ObservableObject {
                     let input: UpdateProjectInput
                 }
                 let request = try decoder.decode(UpdateRequest.self, from: data)
-                _ = try await apiClient.request(
+                try await apiClient.requestVoid(
                     endpoint: APIEndpoint.project(id: request.id),
                     method: .put,
                     body: request.input,
                     authenticated: true
                 )
             case "delete":
-                _ = try await apiClient.requestVoid(
+                try await apiClient.requestVoid(
                     endpoint: APIEndpoint.project(id: item.id),
                     method: .delete,
                     authenticated: true
