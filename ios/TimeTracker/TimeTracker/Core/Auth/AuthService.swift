@@ -1,6 +1,9 @@
 import Foundation
 import AuthenticationServices
 import CryptoKit
+import OSLog
+
+private let logger = Logger(subsystem: "com.timetracker.app", category: "AuthService")
 
 final class AuthService: NSObject {
     static let shared = AuthService()
@@ -29,6 +32,9 @@ final class AuthService: NSObject {
             throw AuthError.invalidURL
         }
         
+        logger.info("Starting login — auth URL: \(authURL.absoluteString)")
+        logger.info("Callback URL scheme: \(AppConfig.authCallbackURL)")
+        
         let callbackScheme = URL(string: AppConfig.authCallbackURL)?.scheme ?? "timetracker"
         
         // Use an ephemeral session — we only need the redirect URL back with the
@@ -40,8 +46,10 @@ final class AuthService: NSObject {
             if let error = error {
                 let authError: AuthError
                 if (error as? ASWebAuthenticationSessionError)?.code == .canceledLogin {
+                    logger.info("Login cancelled by user")
                     authError = .cancelled
                 } else {
+                    logger.error("ASWebAuthenticationSession error: \(error)")
                     authError = .failed(error.localizedDescription)
                 }
                 DispatchQueue.main.async {
@@ -55,6 +63,7 @@ final class AuthService: NSObject {
             }
             
             guard let callbackURL = callbackURL else {
+                logger.error("ASWebAuthenticationSession returned nil callbackURL")
                 DispatchQueue.main.async {
                     NotificationCenter.default.post(
                         name: .authError,
@@ -91,6 +100,7 @@ final class AuthService: NSObject {
               let code = components.queryItems?.first(where: { $0.name == "code" })?.value,
               let state = components.queryItems?.first(where: { $0.name == "state" })?.value
         else {
+            logger.error("Callback URL missing code or state: \(url.absoluteString)")
             DispatchQueue.main.async {
                 NotificationCenter.default.post(
                     name: .authError,
@@ -103,11 +113,13 @@ final class AuthService: NSObject {
         
         Task {
             do {
+                logger.info("Exchanging code for tokens (state: \(state), redirect_uri: \(AppConfig.authCallbackURL))")
                 let tokenResponse = try await exchangeCodeForTokens(
                     code: code,
                     state: state,
                     redirectUri: AppConfig.authCallbackURL
                 )
+                logger.info("Token exchange succeeded for user: \(tokenResponse.user.id)")
                 
                 await AuthManager.shared.handleTokenResponse(tokenResponse)
                 
@@ -115,6 +127,7 @@ final class AuthService: NSObject {
                     NotificationCenter.default.post(name: .authCallbackReceived, object: nil)
                 }
             } catch {
+                logger.error("Token exchange failed: \(error)")
                 DispatchQueue.main.async {
                     NotificationCenter.default.post(
                         name: .authError,
@@ -152,12 +165,17 @@ final class AuthService: NSObject {
             throw AuthError.failed("Invalid response")
         }
         
+        let bodyString = String(data: data, encoding: .utf8) ?? "(non-UTF8 body)"
+        logger.debug("POST /auth/token — status \(httpResponse.statusCode), body: \(bodyString)")
+        
         guard httpResponse.statusCode == 200 else {
             if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let errorMessage = errorJson["error"] as? String {
+                logger.error("POST /auth/token — server error: \(errorMessage)")
                 throw AuthError.failed(errorMessage)
             }
-            throw AuthError.failed("Token exchange failed with status \(httpResponse.statusCode)")
+            logger.error("POST /auth/token — unexpected status \(httpResponse.statusCode): \(bodyString)")
+            throw AuthError.failed("Token exchange failed with status \(httpResponse.statusCode): \(bodyString)")
         }
         
         return try JSONDecoder().decode(TokenResponse.self, from: data)

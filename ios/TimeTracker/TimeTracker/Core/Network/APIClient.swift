@@ -1,4 +1,7 @@
 import Foundation
+import OSLog
+
+private let logger = Logger(subsystem: "com.timetracker.app", category: "APIClient")
 
 actor APIClient {
     private let session: URLSession
@@ -43,9 +46,11 @@ actor APIClient {
         if authenticated {
             let token = await MainActor.run { AuthManager.shared.accessToken }
             guard let token = token else {
+                logger.warning("\(method.rawValue) \(endpoint) — no access token in keychain, throwing .unauthorized")
                 throw NetworkError.unauthorized
             }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            logger.debug("\(method.rawValue) \(endpoint) — Authorization header set (token: \(token.prefix(20))…)")
         }
         
         if let body = body {
@@ -53,27 +58,29 @@ actor APIClient {
         }
         
         do {
+            logger.debug("\(method.rawValue) \(url.absoluteString) — sending request")
             let (data, response) = try await session.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw NetworkError.invalidResponse
             }
             
+            logger.debug("\(method.rawValue) \(endpoint) — status \(httpResponse.statusCode)")
+            
             if httpResponse.statusCode == 401 {
-                let message = try? decoder.decode(ErrorResponse.self, from: data).error
-                await MainActor.run {
-                    AuthManager.shared.clearAuth()
-                }
-                throw NetworkError.httpError(statusCode: 401, message: message)
+                let serverMessage = (try? decoder.decode(ErrorResponse.self, from: data))?.error
+                logger.error("\(method.rawValue) \(endpoint) — 401 Unauthorized. Server: \(serverMessage ?? "(no message)")")
+                await MainActor.run { AuthManager.shared.clearAuth() }
+                throw NetworkError.httpError(statusCode: 401, message: serverMessage)
             }
             
             guard (200...299).contains(httpResponse.statusCode) else {
-                let message = try? decoder.decode(ErrorResponse.self, from: data).error
-                throw NetworkError.httpError(statusCode: httpResponse.statusCode, message: message)
+                let serverMessage = (try? decoder.decode(ErrorResponse.self, from: data))?.error
+                logger.error("\(method.rawValue) \(endpoint) — HTTP \(httpResponse.statusCode). Server: \(serverMessage ?? "(no message)")")
+                throw NetworkError.httpError(statusCode: httpResponse.statusCode, message: serverMessage)
             }
             
             if data.isEmpty {
-                let empty: T? = nil
                 return try decoder.decode(T.self, from: "{}".data(using: .utf8)!)
             }
             
@@ -81,8 +88,10 @@ actor APIClient {
         } catch let error as NetworkError {
             throw error
         } catch let error as DecodingError {
+            logger.error("\(method.rawValue) \(endpoint) — decoding error: \(error)")
             throw NetworkError.decodingError(error)
         } catch {
+            logger.error("\(method.rawValue) \(endpoint) — network error: \(error)")
             throw NetworkError.networkError(error)
         }
     }
@@ -115,9 +124,11 @@ actor APIClient {
         if authenticated {
             let token = await MainActor.run { AuthManager.shared.accessToken }
             guard let token = token else {
+                logger.warning("\(method.rawValue) \(endpoint) — no access token in keychain, throwing .unauthorized")
                 throw NetworkError.unauthorized
             }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            logger.debug("\(method.rawValue) \(endpoint) — Authorization header set (token: \(token.prefix(20))…)")
         }
         
         if let body = body {
@@ -125,27 +136,31 @@ actor APIClient {
         }
         
         do {
+            logger.debug("\(method.rawValue) \(url.absoluteString) — sending request")
             let (data, response) = try await session.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw NetworkError.invalidResponse
             }
             
+            logger.debug("\(method.rawValue) \(endpoint) — status \(httpResponse.statusCode)")
+            
             if httpResponse.statusCode == 401 {
-                let message = try? decoder.decode(ErrorResponse.self, from: data).error
-                await MainActor.run {
-                    AuthManager.shared.clearAuth()
-                }
-                throw NetworkError.httpError(statusCode: 401, message: message)
+                let serverMessage = (try? decoder.decode(ErrorResponse.self, from: data))?.error
+                logger.error("\(method.rawValue) \(endpoint) — 401 Unauthorized. Server: \(serverMessage ?? "(no message)")")
+                await MainActor.run { AuthManager.shared.clearAuth() }
+                throw NetworkError.httpError(statusCode: 401, message: serverMessage)
             }
             
             guard (200...299).contains(httpResponse.statusCode) else {
-                let message = try? decoder.decode(ErrorResponse.self, from: data).error
-                throw NetworkError.httpError(statusCode: httpResponse.statusCode, message: message)
+                let serverMessage = (try? decoder.decode(ErrorResponse.self, from: data))?.error
+                logger.error("\(method.rawValue) \(endpoint) — HTTP \(httpResponse.statusCode). Server: \(serverMessage ?? "(no message)")")
+                throw NetworkError.httpError(statusCode: httpResponse.statusCode, message: serverMessage)
             }
         } catch let error as NetworkError {
             throw error
         } catch {
+            logger.error("\(method.rawValue) \(endpoint) — network error: \(error)")
             throw NetworkError.networkError(error)
         }
     }

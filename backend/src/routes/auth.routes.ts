@@ -50,21 +50,24 @@ router.get("/login", async (req, res) => {
     await ensureOIDC();
 
     const redirectUri = req.query.redirect_uri as string | undefined;
+    console.log(`[auth/login] initiated (redirect_uri: ${redirectUri ?? '(web flow)'})`);
     const session = createAuthSession(redirectUri);
 
     if (redirectUri) {
       // Native app flow: store session by state so /auth/token can retrieve it
       // without relying on the browser cookie jar.
       storeNativeSession(session);
+      console.log(`[auth/login] native session stored (state: ${session.state})`);
     } else {
       // Web flow: store session in the cookie-backed server session as before.
       req.session.oidc = session;
     }
 
     const authorizationUrl = getAuthorizationUrl(session, redirectUri);
+    console.log(`[auth/login] redirecting to IDP`);
     res.redirect(authorizationUrl);
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("[auth/login] error:", error);
     res.status(500).json({ error: "Failed to initiate login" });
   }
 });
@@ -129,24 +132,33 @@ router.post("/token", async (req, res) => {
     await ensureOIDC();
 
     const { code, state, redirect_uri } = req.body;
+    console.log(`[auth/token] received (state: ${state}, redirect_uri: ${redirect_uri}, code present: ${!!code})`);
 
     if (!code || !state || !redirect_uri) {
-      res.status(400).json({ error: "Missing required parameters: code, state, redirect_uri" });
+      const missing = ['code', 'state', 'redirect_uri'].filter(k => !req.body[k]);
+      console.warn(`[auth/token] missing parameters: ${missing.join(', ')}`);
+      res.status(400).json({ error: `Missing required parameters: ${missing.join(', ')}` });
       return;
     }
 
     const oidcSession = popNativeSession(state);
     if (!oidcSession) {
+      console.warn(`[auth/token] no session found for state "${state}" — known states: [${[...nativeOidcSessions.keys()].join(', ')}]`);
       res.status(400).json({ error: "OIDC session not found or expired. Initiate login again." });
       return;
     }
+    console.log(`[auth/token] session found, exchanging code with IDP`);
 
     const tokenSet = await exchangeNativeCode(code, oidcSession.codeVerifier, redirect_uri);
+    console.log(`[auth/token] IDP code exchange OK (access_token present: ${!!tokenSet.access_token}, id_token present: ${!!tokenSet.id_token})`);
+
     const user = await getUserInfo(tokenSet);
+    console.log(`[auth/token] user resolved (id: ${user.id}, email: ${user.email})`);
     await syncUser(user);
 
     // Mint a backend JWT. The iOS app stores this and sends it as Bearer <token>.
     const backendJwt = signBackendJwt(user);
+    console.log(`[auth/token] backend JWT minted for user ${user.id}`);
 
     res.json({
       access_token: backendJwt,
@@ -156,7 +168,7 @@ router.post("/token", async (req, res) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("Token exchange error:", error);
+    console.error("[auth/token] error:", error);
     res.status(500).json({ error: `Failed to exchange token: ${message}` });
   }
 });
