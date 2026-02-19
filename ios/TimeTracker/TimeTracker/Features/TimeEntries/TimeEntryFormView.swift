@@ -80,11 +80,10 @@ struct TimeEntryFormView: View {
     
     private func loadProjects() async {
         do {
-            let response: ProjectListResponse = try await apiClient.request(
+            projects = try await apiClient.request(
                 endpoint: APIEndpoint.projects,
                 authenticated: true
             )
-            projects = response.projects
         } catch {
             self.error = error.localizedDescription
         }
