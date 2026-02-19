@@ -29,6 +29,13 @@ enum APIEndpoint {
 
 struct APIEndpoints {
     static func url(for endpoint: String) -> URL {
-        AppConfig.apiBaseURL.appendingPathComponent(endpoint)
+        // Use URL(string:relativeTo:) rather than appendingPathComponent so that
+        // leading slashes in endpoint strings are handled correctly and don't
+        // accidentally replace or duplicate the base URL path.
+        let base = AppConfig.apiBaseURL.absoluteString.hasSuffix("/")
+            ? AppConfig.apiBaseURL
+            : URL(string: AppConfig.apiBaseURL.absoluteString + "/")!
+        let relative = endpoint.hasPrefix("/") ? String(endpoint.dropFirst()) : endpoint
+        return URL(string: relative, relativeTo: base)!.absoluteURL
     }
 }

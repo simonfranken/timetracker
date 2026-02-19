@@ -1,5 +1,8 @@
 import Foundation
 import KeychainAccess
+import OSLog
+
+private let logger = Logger(subsystem: "com.timetracker.app", category: "AuthManager")
 
 @MainActor
 final class AuthManager: ObservableObject {
@@ -29,19 +32,23 @@ final class AuthManager: ObservableObject {
     }
     
     func checkAuthState() async {
-        guard accessToken != nil else {
+        guard let token = accessToken else {
+            logger.info("checkAuthState — no token in keychain, not authenticated")
             isAuthenticated = false
             return
         }
+        logger.info("checkAuthState — token found (first 20 chars: \(token.prefix(20))…), calling /auth/me")
         
         do {
             let user: User = try await apiClient.request(
                 endpoint: APIEndpoint.me,
                 authenticated: true
             )
+            logger.info("checkAuthState — /auth/me OK, user: \(user.id)")
             currentUser = user
             isAuthenticated = true
         } catch {
+            logger.error("checkAuthState — /auth/me failed: \(error.localizedDescription) — clearing auth")
             clearAuth()
         }
     }
@@ -67,15 +74,18 @@ final class AuthManager: ObservableObject {
     }
     
     func clearAuth() {
+        logger.info("clearAuth — wiping token and user")
         accessToken = nil
         currentUser = nil
         isAuthenticated = false
     }
     
     func handleTokenResponse(_ response: TokenResponse) async {
+        logger.info("handleTokenResponse — storing JWT for user \(response.user.id)")
         accessToken = response.accessToken
         currentUser = response.user
         isAuthenticated = true
+        logger.info("handleTokenResponse — isAuthenticated = true, token stored: \(self.accessToken != nil)")
     }
     
     var loginURL: URL {
