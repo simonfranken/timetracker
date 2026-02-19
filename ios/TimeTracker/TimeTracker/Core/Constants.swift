@@ -13,7 +13,6 @@ enum AppConstants {
     
     enum KeychainKeys {
         static let accessToken = "accessToken"
-        static let idToken = "idToken"
     }
 }
 

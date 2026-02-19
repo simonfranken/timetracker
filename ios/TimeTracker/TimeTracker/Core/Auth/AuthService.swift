@@ -31,8 +31,8 @@ final class AuthService: NSObject {
         
         let callbackScheme = URL(string: AppConfig.authCallbackURL)?.scheme ?? "timetracker"
         
-        // Use a shared (non-ephemeral) session so the backend session cookie set during
-        // /auth/login is automatically included in the /auth/token POST.
+        // Use an ephemeral session — we only need the redirect URL back with the
+        // authorization code; no cookies or shared state are needed.
         let webAuthSession = ASWebAuthenticationSession(
             url: authURL,
             callbackURLScheme: callbackScheme
@@ -69,9 +69,8 @@ final class AuthService: NSObject {
         }
         
         webAuthSession.presentationContextProvider = self
-        // prefersEphemeralWebBrowserSession = false ensures the session cookie from
-        // /auth/login is retained and sent with the subsequent /auth/token request.
-        webAuthSession.prefersEphemeralWebBrowserSession = false
+        // Ephemeral session: no shared cookies or browsing data with Safari.
+        webAuthSession.prefersEphemeralWebBrowserSession = true
         
         self.authSession = webAuthSession
         
@@ -138,8 +137,8 @@ final class AuthService: NSObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // state is sent so the backend can look up and validate the original session.
-        // code_verifier is not sent — the backend uses its own verifier from the session.
+        // state is sent so the backend can look up the original PKCE session.
+        // code_verifier is NOT sent — the backend holds it in the in-memory session.
         let body: [String: Any] = [
             "code": code,
             "state": state,
@@ -198,14 +197,12 @@ extension Notification.Name {
 
 struct TokenResponse: Codable {
     let accessToken: String
-    let idToken: String?
     let tokenType: String
     let expiresIn: Int?
     let user: User
     
     enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
-        case idToken = "id_token"
         case tokenType = "token_type"
         case expiresIn = "expires_in"
         case user

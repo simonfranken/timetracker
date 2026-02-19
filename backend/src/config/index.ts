@@ -25,6 +25,13 @@ export const config = {
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
   },
 
+  jwt: {
+    // Dedicated secret for backend-issued JWTs. Falls back to SESSION_SECRET so
+    // existing single-secret deployments work without any config change.
+    secret: process.env.JWT_SECRET || process.env.SESSION_SECRET || "default-secret-change-in-production",
+    expiresIn: 30 * 24 * 60 * 60, // 30 days in seconds
+  },
+
   cors: {
     origin: process.env.APP_URL || "http://localhost:5173",
     credentials: true,

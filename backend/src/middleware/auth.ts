@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma/client';
 import type { AuthenticatedRequest, AuthenticatedUser } from '../types';
-import { getOIDCClient, verifyBearerToken } from '../auth/oidc';
+import { verifyBackendJwt } from '../auth/jwt';
 
 export async function requireAuth(
   req: AuthenticatedRequest,
@@ -14,18 +14,16 @@ export async function requireAuth(
     return next();
   }
 
-  // 2. Bearer token auth (iOS / native clients)
+  // 2. Bearer JWT auth (iOS / native clients)
   const authHeader = req.headers.authorization;
-  console.log('[requireAuth] authorization header:', authHeader ? `${authHeader.slice(0, 20)}…` : '(none)');
   if (authHeader?.startsWith('Bearer ')) {
-    const accessToken = authHeader.slice(7);
+    const token = authHeader.slice(7);
     try {
-      const user = await verifyBearerToken(accessToken);
-      req.user = user;
+      // Verify the backend-signed JWT locally — no IDP network call needed.
+      req.user = verifyBackendJwt(token);
       return next();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error('[requireAuth] verifyBearerToken failed:', err);
       res.status(401).json({ error: `Unauthorized: ${message}` });
       return;
     }

@@ -11,6 +11,7 @@ final class AuthManager: ObservableObject {
     private let keychain: Keychain
     private let apiClient = APIClient()
     
+    /// The backend-issued JWT. Sent as `Authorization: Bearer <token>` on every API call.
     var accessToken: String? {
         get { try? keychain.get(AppConstants.KeychainKeys.accessToken) }
         set {
@@ -18,17 +19,6 @@ final class AuthManager: ObservableObject {
                 try? keychain.set(value, key: AppConstants.KeychainKeys.accessToken)
             } else {
                 try? keychain.remove(AppConstants.KeychainKeys.accessToken)
-            }
-        }
-    }
-    
-    var idToken: String? {
-        get { try? keychain.get(AppConstants.KeychainKeys.idToken) }
-        set {
-            if let value = newValue {
-                try? keychain.set(value, key: AppConstants.KeychainKeys.idToken)
-            } else {
-                try? keychain.remove(AppConstants.KeychainKeys.idToken)
             }
         }
     }
@@ -66,7 +56,9 @@ final class AuthManager: ObservableObject {
     }
     
     func logout() async throws {
-        try await apiClient.requestVoid(
+        // Best-effort server-side logout; the backend JWT is stateless so the
+        // real security comes from clearing the local token.
+        try? await apiClient.requestVoid(
             endpoint: APIEndpoint.logout,
             method: .post,
             authenticated: true
@@ -76,14 +68,12 @@ final class AuthManager: ObservableObject {
     
     func clearAuth() {
         accessToken = nil
-        idToken = nil
         currentUser = nil
         isAuthenticated = false
     }
     
     func handleTokenResponse(_ response: TokenResponse) async {
         accessToken = response.accessToken
-        idToken = response.idToken
         currentUser = response.user
         isAuthenticated = true
     }

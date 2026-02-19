@@ -2,6 +2,9 @@ import { Issuer, generators, Client, TokenSet } from 'openid-client';
 import { config } from '../config';
 import type { AuthenticatedUser } from '../types';
 
+// Note: bearer-token (JWT) verification for native clients lives in auth/jwt.ts.
+// This module is responsible solely for the OIDC protocol flows.
+
 let oidcClient: Client | null = null;
 
 export async function initializeOIDC(): Promise<void> {
@@ -160,48 +163,3 @@ export async function getUserInfo(tokenSet: TokenSet): Promise<AuthenticatedUser
   return { id, username, fullName, email };
 }
 
-export async function verifyToken(tokenSet: TokenSet): Promise<boolean> {
-  try {
-    const client = getOIDCClient();
-    await client.userinfo(tokenSet);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// Cache userinfo responses to avoid hitting the OIDC provider on every request.
-// Entries expire after 5 minutes. The cache is keyed by the raw access token.
-const userinfoCache = new Map<string, { user: AuthenticatedUser; expiresAt: number }>();
-const USERINFO_CACHE_TTL_MS = 5 * 60 * 1000;
-
-export async function verifyBearerToken(accessToken: string): Promise<AuthenticatedUser> {
-  const cached = userinfoCache.get(accessToken);
-  if (cached && Date.now() < cached.expiresAt) {
-    return cached.user;
-  }
-
-  const client = getOIDCClient();
-
-  let userInfo: Awaited<ReturnType<typeof client.userinfo>>;
-  try {
-    userInfo = await client.userinfo(accessToken);
-  } catch (err) {
-    // Remove any stale cache entry for this token
-    userinfoCache.delete(accessToken);
-    throw err;
-  }
-
-  const id = String(userInfo.sub);
-  const username = String(userInfo.preferred_username || userInfo.name || id);
-  const email = String(userInfo.email || '');
-  const fullName = String(userInfo.name || '') || null;
-
-  if (!email) {
-    throw new Error('Email not provided by OIDC provider');
-  }
-
-  const user: AuthenticatedUser = { id, username, fullName, email };
-  userinfoCache.set(accessToken, { user, expiresAt: Date.now() + USERINFO_CACHE_TTL_MS });
-  return user;
-}

@@ -7,8 +7,9 @@ import {
   exchangeNativeCode,
   getUserInfo,
 } from "../auth/oidc";
+import { signBackendJwt } from "../auth/jwt";
 import { requireAuth, syncUser } from "../middleware/auth";
-import type { AuthenticatedRequest, AuthenticatedUser } from "../types";
+import type { AuthenticatedRequest } from "../types";
 import type { AuthSession } from "../auth/oidc";
 
 const router = Router();
@@ -119,9 +120,10 @@ router.get("/me", requireAuth, (req: AuthenticatedRequest, res) => {
   res.json(req.user);
 });
 
-// POST /auth/token - Exchange authorization code for tokens (native app flow)
-// Session state is retrieved from the in-memory store by state value, so no
-// session cookie is required from the native client.
+// POST /auth/token - Exchange OIDC authorization code for a backend JWT (native app flow).
+// The iOS app calls this after the OIDC redirect; it receives a backend-signed JWT which
+// it then uses as a Bearer token for all subsequent API requests. The backend verifies
+// this JWT locally — no per-request IDP call is needed.
 router.post("/token", async (req, res) => {
   try {
     await ensureOIDC();
@@ -140,15 +142,16 @@ router.post("/token", async (req, res) => {
     }
 
     const tokenSet = await exchangeNativeCode(code, oidcSession.codeVerifier, redirect_uri);
-
     const user = await getUserInfo(tokenSet);
     await syncUser(user);
 
+    // Mint a backend JWT. The iOS app stores this and sends it as Bearer <token>.
+    const backendJwt = signBackendJwt(user);
+
     res.json({
-      access_token: tokenSet.access_token,
-      id_token: tokenSet.id_token,
-      token_type: tokenSet.token_type,
-      expires_in: tokenSet.expires_in,
+      access_token: backendJwt,
+      token_type: "Bearer",
+      expires_in: 30 * 24 * 60 * 60, // 30 days
       user,
     });
   } catch (error) {
