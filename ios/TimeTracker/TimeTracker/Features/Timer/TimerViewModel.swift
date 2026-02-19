@@ -37,11 +37,10 @@ final class TimerViewModel: ObservableObject {
             try await database.cacheTimer(activeTimer)
             
             // Fetch projects
-            let response: ProjectListResponse = try await apiClient.request(
+            projects = try await apiClient.request(
                 endpoint: APIEndpoint.projects,
                 authenticated: true
             )
-            projects = response.projects
             
             // Set selected project if timer has one
             if let timerProject = activeTimer?.project {

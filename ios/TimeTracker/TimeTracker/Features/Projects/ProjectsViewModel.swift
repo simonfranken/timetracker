@@ -16,17 +16,15 @@ final class ProjectsViewModel: ObservableObject {
         error = nil
         
         do {
-            let clientsResponse: ClientListResponse = try await apiClient.request(
+            clients = try await apiClient.request(
                 endpoint: APIEndpoint.clients,
                 authenticated: true
             )
-            clients = clientsResponse.clients
             
-            let projectsResponse: ProjectListResponse = try await apiClient.request(
+            projects = try await apiClient.request(
                 endpoint: APIEndpoint.projects,
                 authenticated: true
             )
-            projects = projectsResponse.projects
             
             try await database.saveProjects(projects)
             

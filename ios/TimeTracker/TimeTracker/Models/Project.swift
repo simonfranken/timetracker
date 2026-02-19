@@ -16,10 +16,6 @@ struct ClientReference: Codable, Equatable, Hashable {
     let name: String
 }
 
-struct ProjectListResponse: Codable {
-    let projects: [Project]
-}
-
 struct CreateProjectInput: Codable {
     let name: String
     let description: String?

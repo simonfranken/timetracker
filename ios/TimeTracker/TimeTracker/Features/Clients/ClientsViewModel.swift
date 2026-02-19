@@ -15,11 +15,10 @@ final class ClientsViewModel: ObservableObject {
         error = nil
         
         do {
-            let response: ClientListResponse = try await apiClient.request(
+            clients = try await apiClient.request(
                 endpoint: APIEndpoint.clients,
                 authenticated: true
             )
-            clients = response.clients
             
             try await database.saveClients(clients)
             

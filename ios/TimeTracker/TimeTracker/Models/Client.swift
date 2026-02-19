@@ -8,10 +8,6 @@ struct Client: Codable, Identifiable, Equatable, Hashable {
     let updatedAt: String
 }
 
-struct ClientListResponse: Codable {
-    let clients: [Client]
-}
-
 struct CreateClientInput: Codable {
     let name: String
     let description: String?
