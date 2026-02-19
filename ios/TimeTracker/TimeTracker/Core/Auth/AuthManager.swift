@@ -14,14 +14,34 @@ final class AuthManager: ObservableObject {
     private let keychain: Keychain
     private let apiClient = APIClient()
     
+    /// In-memory cache so the token is always available within the current session,
+    /// even if the keychain write fails (e.g. missing entitlement on simulator).
+    private var _accessToken: String?
+    
     /// The backend-issued JWT. Sent as `Authorization: Bearer <token>` on every API call.
     var accessToken: String? {
-        get { try? keychain.get(AppConstants.KeychainKeys.accessToken) }
+        get {
+            // Return the in-memory value first; fall back to keychain for persistence
+            // across app launches.
+            if let cached = _accessToken { return cached }
+            let stored = try? keychain.get(AppConstants.KeychainKeys.accessToken)
+            _accessToken = stored
+            return stored
+        }
         set {
+            _accessToken = newValue
             if let value = newValue {
-                try? keychain.set(value, key: AppConstants.KeychainKeys.accessToken)
+                do {
+                    try keychain.set(value, key: AppConstants.KeychainKeys.accessToken)
+                } catch {
+                    logger.warning("Keychain write failed (token still available in-memory): \(error)")
+                }
             } else {
-                try? keychain.remove(AppConstants.KeychainKeys.accessToken)
+                do {
+                    try keychain.remove(AppConstants.KeychainKeys.accessToken)
+                } catch {
+                    logger.warning("Keychain remove failed: \(error)")
+                }
             }
         }
     }
@@ -75,6 +95,7 @@ final class AuthManager: ObservableObject {
     
     func clearAuth() {
         logger.info("clearAuth — wiping token and user")
+        _accessToken = nil
         accessToken = nil
         currentUser = nil
         isAuthenticated = false
