@@ -12,6 +12,9 @@ struct WidgetTimer: Codable {
     let id: String
     let startTime: String
     let projectId: String?
+    let project: WidgetProjectReference?
+    let createdAt: String
+    let updatedAt: String
     
     var elapsedTime: TimeInterval {
         guard let start = ISO8601DateFormatter().date(from: startTime) else {
@@ -19,6 +22,12 @@ struct WidgetTimer: Codable {
         }
         return Date().timeIntervalSince(start)
     }
+}
+
+struct WidgetProjectReference: Codable {
+    let id: String
+    let name: String
+    let color: String?
 }
 
 struct Provider: TimelineProvider {
@@ -41,7 +50,8 @@ struct Provider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<TimerEntry>) -> Void) {
         let entry = loadTimerEntry()
         
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
+        // Update every minute to show live timer countdown
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 1, to: Date())!
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
         
         completion(timeline)
@@ -63,8 +73,8 @@ struct Provider: TimelineProvider {
             return TimerEntry(
                 date: Date(),
                 timer: timer,
-                projectName: timer.projectId,
-                projectColor: nil
+                projectName: timer.project?.name ?? timer.projectId,
+                projectColor: timer.project?.color
             )
         } catch {
             return TimerEntry(
