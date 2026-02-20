@@ -116,6 +116,7 @@ struct TimerView: View {
                     .buttonStyle(.borderedProminent)
                     .tint(.red)
                     .controlSize(.large)
+                    .disabled(viewModel.selectedProject == nil && viewModel.activeTimer?.project == nil)
                 }
             }
             .padding(.horizontal, 24)
