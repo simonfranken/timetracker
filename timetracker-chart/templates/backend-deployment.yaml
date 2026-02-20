@@ -56,8 +56,12 @@ spec:
               value: {{ .Values.backend.oidc.clientId | quote }}
             - name: OIDC_REDIRECT_URI
               value: {{ (index .Values.ingress.hosts 0).host | printf "https://%s/api/auth/callback" | quote }}
+            - name: OIDC_IOS_REDIRECT_URI
+              value: {{ .Values.backend.oidc.iosRedirectUri | quote }}
             - name: SESSION_SECRET
               value: {{ .Values.backend.session.secret | quote }}
+            - name: JWT_SECRET
+              value: {{ .Values.backend.jwt.secret | quote }}
             - name: APP_URL
               value: {{ (index .Values.ingress.hosts 0).host | printf "https://%s" | quote }}
           ports:

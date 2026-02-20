@@ -33,8 +33,13 @@ IMPORTANT NOTES:
 - Set postgresql.url in values.yaml to point to your existing database.
 - Make sure to change the OIDC configuration in values.yaml
 - Change the SESSION_SECRET from the default value for production
+- Set backend.jwt.secret to a dedicated secret in production (falls back to SESSION_SECRET if empty)
 - Configure ingress host and TLS settings for your environment
 
 OIDC Configuration Required:
-  issuerUrl: {{ .Values.backend.oidc.issuerUrl | default "NOT SET - REQUIRED" }}
-  clientId: {{ .Values.backend.oidc.clientId | default "NOT SET - REQUIRED" }}
+  issuerUrl:        {{ .Values.backend.oidc.issuerUrl | default "NOT SET - REQUIRED" }}
+  clientId:         {{ .Values.backend.oidc.clientId | default "NOT SET - REQUIRED" }}
+  iosRedirectUri:   {{ .Values.backend.oidc.iosRedirectUri }}
+
+JWT (iOS Bearer auth):
+  jwt.secret: {{ if .Values.backend.jwt.secret }}(set){{ else }}NOT SET - falling back to session.secret{{ end }}

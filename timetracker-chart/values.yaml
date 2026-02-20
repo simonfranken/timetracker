@@ -41,10 +41,20 @@ backend:
   oidc:
     issuerUrl: ""
     clientId: ""
+    # Redirect URI registered in the IDP for the iOS native app.
+    # Must match the custom URL scheme configured in the iOS app.
+    iosRedirectUri: "timetracker://oauth/callback"
 
   # Session configuration
   session:
     secret: "change-this-secret-in-production"
+
+  # JWT configuration (for iOS Bearer token auth)
+  # jwt.secret is used to sign backend-issued JWTs for the iOS app.
+  # If left empty it falls back to session.secret.
+  # Set this to a dedicated secret in production.
+  jwt:
+    secret: ""
 
   env:
     nodeEnv: production
