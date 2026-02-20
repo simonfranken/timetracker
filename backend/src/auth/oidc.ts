@@ -41,11 +41,11 @@ export interface AuthSession {
   codeVerifier: string;
   state: string;
   nonce: string | undefined;
-  redirectUri?: string;
+  redirectUri: string;
 }
 
-export function createAuthSession(redirectUri?: string): AuthSession {
-  const isNative = !!redirectUri;
+export function createAuthSession(redirectUri: string): AuthSession {
+  const isNative = redirectUri.startsWith('timetracker://');
   return {
     codeVerifier: generators.codeVerifier(),
     state: generators.state(),
@@ -58,25 +58,22 @@ export function createAuthSession(redirectUri?: string): AuthSession {
   };
 }
 
-export function getAuthorizationUrl(session: AuthSession, redirectUri?: string): string {
+export function getAuthorizationUrl(session: AuthSession): string {
   const client = getOIDCClient();
   const codeChallenge = generators.codeChallenge(session.codeVerifier);
-  
+
   const params: Record<string, string> = {
     scope: 'openid profile email',
     state: session.state,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
+    redirect_uri: session.redirectUri,
   };
 
   if (session.nonce) {
     params.nonce = session.nonce;
   }
-  
-  if (redirectUri) {
-    params.redirect_uri = redirectUri;
-  }
-  
+
   return client.authorizationUrl(params);
 }
 
@@ -85,9 +82,7 @@ export async function handleCallback(
   session: AuthSession
 ): Promise<TokenSet> {
   const client = getOIDCClient();
-  
-  const redirectUri = session.redirectUri || config.oidc.redirectUri;
-  
+
   const checks: Record<string, string | undefined> = {
     code_verifier: session.codeVerifier,
     state: session.state,
@@ -98,11 +93,11 @@ export async function handleCallback(
   }
 
   const tokenSet = await client.callback(
-    redirectUri,
+    session.redirectUri,
     params,
     checks,
   );
-  
+
   return tokenSet;
 }
 

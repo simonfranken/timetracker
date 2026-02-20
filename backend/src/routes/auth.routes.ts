@@ -9,6 +9,7 @@ import {
 } from "../auth/oidc";
 import { signBackendJwt } from "../auth/jwt";
 import { requireAuth, syncUser } from "../middleware/auth";
+import { config } from "../config";
 import type { AuthenticatedRequest } from "../types";
 import type { AuthSession } from "../auth/oidc";
 
@@ -49,11 +50,18 @@ router.get("/login", async (req, res) => {
   try {
     await ensureOIDC();
 
-    const redirectUri = req.query.redirect_uri as string | undefined;
-    console.log(`[auth/login] initiated (redirect_uri: ${redirectUri ?? '(web flow)'})`);
+    const isNativeFlow = !!req.query.redirect_uri;
+    // For the web flow no redirect_uri is supplied in the request — use the
+    // backend-configured value so the IDP always receives an explicit URI
+    // rather than relying on the openid-client library to pick a default.
+    const redirectUri = isNativeFlow
+      ? (req.query.redirect_uri as string)
+      : config.oidc.redirectUri;
+
+    console.log(`[auth/login] initiated (redirect_uri: ${redirectUri})`);
     const session = createAuthSession(redirectUri);
 
-    if (redirectUri) {
+    if (isNativeFlow) {
       // Native app flow: store session by state so /auth/token can retrieve it
       // without relying on the browser cookie jar.
       storeNativeSession(session);
@@ -63,7 +71,7 @@ router.get("/login", async (req, res) => {
       req.session.oidc = session;
     }
 
-    const authorizationUrl = getAuthorizationUrl(session, redirectUri);
+    const authorizationUrl = getAuthorizationUrl(session);
     console.log(`[auth/login] redirecting to IDP`);
     res.redirect(authorizationUrl);
   } catch (error) {
