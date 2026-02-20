@@ -44,6 +44,8 @@ struct TimerView: View {
                     .font(.system(size: 64, weight: .light, design: .monospaced))
                     .foregroundStyle(viewModel.activeTimer != nil ? .primary : .secondary)
                 
+                TimerUnitLabels(elapsed: viewModel.elapsedTime)
+                
                 if let project = viewModel.selectedProject {
                     ProjectColorBadge(
                         color: project.color,
@@ -120,6 +122,32 @@ struct TimerView: View {
             
             Spacer()
         }
+    }
+}
+
+/// Displays "h  min  sec" (or "min  sec") column labels aligned under the
+/// monospaced timer digits.
+private struct TimerUnitLabels: View {
+    let elapsed: TimeInterval
+
+    private var showHours: Bool { Int(elapsed) >= 3600 }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            if showHours {
+                Text("h")
+                    .frame(width: 64)
+                Text("min")
+                    .frame(width: 64)
+            } else {
+                Text("min")
+                    .frame(width: 64)
+            }
+            Text("sec")
+                .frame(width: 64)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
     }
 }
 

@@ -9,9 +9,7 @@ struct OngoingTimer: Codable, Identifiable, Equatable {
     let updatedAt: String
     
     var elapsedTime: TimeInterval {
-        guard let start = ISO8601DateFormatter().date(from: startTime) else {
-            return 0
-        }
+        guard let start = Date.fromISO8601(startTime) else { return 0 }
         return Date().timeIntervalSince(start)
     }
 }

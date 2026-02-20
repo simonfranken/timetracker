@@ -59,8 +59,14 @@ extension Date {
     }
     
     static func fromISO8601(_ string: String) -> Date? {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: string)
+        // Try with fractional seconds first (e.g. "2026-02-20T09:00:00.000Z" from
+        // Prisma/Node.js JSON serialisation), then fall back to whole seconds.
+        let withFractional = ISO8601DateFormatter()
+        withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = withFractional.date(from: string) { return date }
+
+        let wholeSec = ISO8601DateFormatter()
+        wholeSec.formatOptions = [.withInternetDateTime]
+        return wholeSec.date(from: string)
     }
 }

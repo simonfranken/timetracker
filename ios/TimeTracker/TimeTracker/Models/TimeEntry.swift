@@ -11,10 +11,8 @@ struct TimeEntry: Codable, Identifiable, Equatable {
     let updatedAt: String
     
     var duration: TimeInterval {
-        guard let start = ISO8601DateFormatter().date(from: startTime),
-              let end = ISO8601DateFormatter().date(from: endTime) else {
-            return 0
-        }
+        guard let start = Date.fromISO8601(startTime),
+              let end = Date.fromISO8601(endTime) else { return 0 }
         return end.timeIntervalSince(start)
     }
 }
