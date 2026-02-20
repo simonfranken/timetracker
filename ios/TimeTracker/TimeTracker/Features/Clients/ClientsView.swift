@@ -3,6 +3,8 @@ import SwiftUI
 struct ClientsView: View {
     @StateObject private var viewModel = ClientsViewModel()
     @State private var showAddClient = false
+    @State private var clientToDelete: Client?
+    @State private var showDeleteConfirmation = false
     
     var body: some View {
         NavigationStack {
@@ -52,12 +54,21 @@ struct ClientsView: View {
                 ClientRow(client: client)
             }
             .onDelete { indexSet in
-                Task {
-                    for index in indexSet {
-                        await viewModel.deleteClient(viewModel.clients[index])
-                    }
+                if let index = indexSet.first {
+                    clientToDelete = viewModel.clients[index]
+                    showDeleteConfirmation = true
                 }
             }
+        }
+        .alert("Delete Client?", isPresented: $showDeleteConfirmation, presenting: clientToDelete) { client in
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                Task {
+                    await viewModel.deleteClient(client)
+                }
+            }
+        } message: { client in
+            Text("This will permanently delete '\(client.name)' and all related projects and time entries. This action cannot be undone.")
         }
         .refreshable {
             await viewModel.loadClients()

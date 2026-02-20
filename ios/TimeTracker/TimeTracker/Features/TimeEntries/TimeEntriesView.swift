@@ -3,6 +3,8 @@ import SwiftUI
 struct TimeEntriesView: View {
     @StateObject private var viewModel = TimeEntriesViewModel()
     @State private var showAddEntry = false
+    @State private var entryToDelete: TimeEntry?
+    @State private var showDeleteConfirmation = false
     
     var body: some View {
         NavigationStack {
@@ -50,12 +52,21 @@ struct TimeEntriesView: View {
                 TimeEntryRow(entry: entry)
             }
             .onDelete { indexSet in
-                Task {
-                    for index in indexSet {
-                        await viewModel.deleteEntry(viewModel.entries[index])
-                    }
+                if let index = indexSet.first {
+                    entryToDelete = viewModel.entries[index]
+                    showDeleteConfirmation = true
                 }
             }
+        }
+        .alert("Delete Time Entry?", isPresented: $showDeleteConfirmation, presenting: entryToDelete) { entry in
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                Task {
+                    await viewModel.deleteEntry(entry)
+                }
+            }
+        } message: { entry in
+            Text("This will permanently delete the time entry for '\(entry.project.name)'. This action cannot be undone.")
         }
         .refreshable {
             await viewModel.loadEntries()

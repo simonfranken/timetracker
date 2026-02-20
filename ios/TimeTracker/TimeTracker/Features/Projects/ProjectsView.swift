@@ -3,6 +3,8 @@ import SwiftUI
 struct ProjectsView: View {
     @StateObject private var viewModel = ProjectsViewModel()
     @State private var showAddProject = false
+    @State private var projectToDelete: Project?
+    @State private var showDeleteConfirmation = false
     
     var body: some View {
         NavigationStack {
@@ -60,12 +62,21 @@ struct ProjectsView: View {
                 ProjectRow(project: project)
             }
             .onDelete { indexSet in
-                Task {
-                    for index in indexSet {
-                        await viewModel.deleteProject(viewModel.projects[index])
-                    }
+                if let index = indexSet.first {
+                    projectToDelete = viewModel.projects[index]
+                    showDeleteConfirmation = true
                 }
             }
+        }
+        .alert("Delete Project?", isPresented: $showDeleteConfirmation, presenting: projectToDelete) { project in
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                Task {
+                    await viewModel.deleteProject(project)
+                }
+            }
+        } message: { project in
+            Text("This will permanently delete '\(project.name)' and all related time entries. This action cannot be undone.")
         }
         .refreshable {
             await viewModel.loadData()
