@@ -3,11 +3,25 @@ import SwiftUI
 struct TimeEntriesView: View {
     @StateObject private var viewModel = TimeEntriesViewModel()
     @State private var selectedDay: Date? = Calendar.current.startOfDay(for: Date())
+    @State private var visibleWeekStart: Date = Self.mondayOfWeek(containing: Date())
     @State private var showFilterSheet = false
     @State private var showAddEntry = false
     @State private var entryToEdit: TimeEntry?
     @State private var entryToDelete: TimeEntry?
     @State private var showDeleteConfirmation = false
+
+    private static func mondayOfWeek(containing date: Date) -> Date {
+        var cal = Calendar.current
+        cal.firstWeekday = 2 // Monday
+        let comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
+        return cal.date(from: comps) ?? Calendar.current.startOfDay(for: date)
+    }
+
+    private var visibleWeekDays: [Date] {
+        (0..<7).compactMap {
+            Calendar.current.date(byAdding: .day, value: $0, to: visibleWeekStart)
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -72,19 +86,22 @@ struct TimeEntriesView: View {
     // MARK: - Main content
 
     private var mainContent: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // Month calendar
-                CalendarGridView(
-                    daysWithEntries: viewModel.daysWithEntries,
-                    selectedDay: $selectedDay
-                )
-                .padding(.horizontal)
-                .padding(.top, 8)
+        VStack(spacing: 0) {
+            WeekStripView(
+                weekDays: visibleWeekDays,
+                selectedDay: $selectedDay,
+                daysWithEntries: viewModel.daysWithEntries,
+                onSwipeLeft: {
+                    visibleWeekStart = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: visibleWeekStart) ?? visibleWeekStart
+                },
+                onSwipeRight: {
+                    visibleWeekStart = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: visibleWeekStart) ?? visibleWeekStart
+                }
+            )
 
-                Divider().padding(.top, 8)
+            Divider()
 
-                // Day detail — entries for the selected day
+            ScrollView {
                 if let day = selectedDay {
                     dayEntriesSection(for: day)
                 } else {
@@ -242,83 +259,137 @@ struct EntryRow: View {
     }
 }
 
-// MARK: - Calendar Grid View (UICalendarView wrapper)
+// MARK: - Week Strip View
 
-struct CalendarGridView: UIViewRepresentable {
-    let daysWithEntries: Set<Date>
+struct WeekStripView: View {
+    let weekDays: [Date]
     @Binding var selectedDay: Date?
+    let daysWithEntries: Set<Date>
+    let onSwipeLeft: () -> Void
+    let onSwipeRight: () -> Void
 
-    func makeUIView(context: Context) -> UICalendarView {
-        let view = UICalendarView()
-        view.calendar = .current
-        view.locale = .current
-        view.fontDesign = .rounded
-        view.delegate = context.coordinator
+    @GestureState private var dragOffset: CGFloat = 0
 
-        let selection = UICalendarSelectionSingleDate(delegate: context.coordinator)
-        if let day = selectedDay {
-            selection.selectedDate = Calendar.current.dateComponents([.year, .month, .day], from: day)
-        }
-        view.selectionBehavior = selection
+    private let cal = Calendar.current
 
-        // Show current month
-        let today = Date()
-        let comps = Calendar.current.dateComponents([.year, .month], from: today)
-        if let startOfMonth = Calendar.current.date(from: comps) {
-            view.visibleDateComponents = Calendar.current.dateComponents(
-                [.year, .month, .day], from: startOfMonth
-            )
-        }
-        return view
+    private var monthYearLabel: String {
+        // Show the month/year of the majority of days in the strip
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        let midWeek = weekDays.count >= 4 ? weekDays[3] : (weekDays.first ?? Date())
+        return formatter.string(from: midWeek)
     }
 
-    func updateUIView(_ uiView: UICalendarView, context: Context) {
-        // Reload all decorations when daysWithEntries changes
-        uiView.reloadDecorations(forDateComponents: Array(daysWithEntries.map {
-            Calendar.current.dateComponents([.year, .month, .day], from: $0)
-        }), animated: false)
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-
-    final class Coordinator: NSObject, UICalendarViewDelegate, UICalendarSelectionSingleDateDelegate {
-        var parent: CalendarGridView
-
-        init(parent: CalendarGridView) {
-            self.parent = parent
-        }
-
-        // Dot decorations for days that have entries
-        func calendarView(_ calendarView: UICalendarView,
-                          decorationFor dateComponents: DateComponents) -> UICalendarView.Decoration? {
-            guard let date = Calendar.current.date(from: dateComponents) else { return nil }
-            let normalized = Calendar.current.startOfDay(for: date)
-            guard parent.daysWithEntries.contains(normalized) else { return nil }
-            return .default(color: .systemBlue, size: .small)
-        }
-
-        // Date selection
-        func dateSelection(_ selection: UICalendarSelectionSingleDate,
-                           didSelectDate dateComponents: DateComponents?) {
-            guard let comps = dateComponents,
-                  let date = Calendar.current.date(from: comps) else {
-                parent.selectedDay = nil
-                return
+    var body: some View {
+        VStack(spacing: 4) {
+            // Month / year header with navigation arrows
+            HStack {
+                Button { onSwipeRight() } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 32, height: 32)
+                }
+                Spacer()
+                Text(monthYearLabel)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Spacer()
+                Button { onSwipeLeft() } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 32, height: 32)
+                }
             }
-            let normalized = Calendar.current.startOfDay(for: date)
-            // Tap same day again to deselect
-            if let current = parent.selectedDay, Calendar.current.isDate(current, inSameDayAs: normalized) {
-                parent.selectedDay = nil
-                selection.selectedDate = nil
-            } else {
-                parent.selectedDay = normalized
-            }
-        }
+            .padding(.horizontal, 8)
+            .padding(.top, 6)
 
-        func dateSelection(_ selection: UICalendarSelectionSingleDate,
-                           canSelectDate dateComponents: DateComponents?) -> Bool { true }
+            // Day cells
+            HStack(spacing: 0) {
+                ForEach(weekDays, id: \.self) { day in
+                    DayCell(
+                        day: day,
+                        isSelected: selectedDay.map { cal.isDate($0, inSameDayAs: day) } ?? false,
+                        isToday: cal.isDateInToday(day),
+                        hasDot: daysWithEntries.contains(cal.startOfDay(for: day))
+                    )
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        let normalized = cal.startOfDay(for: day)
+                        if let current = selectedDay, cal.isDate(current, inSameDayAs: normalized) {
+                            selectedDay = nil
+                        } else {
+                            selectedDay = normalized
+                        }
+                    }
+                }
+            }
+            .padding(.bottom, 6)
+        }
+        .gesture(
+            DragGesture(minimumDistance: 40, coordinateSpace: .local)
+                .onEnded { value in
+                    if value.translation.width < -40 {
+                        onSwipeLeft()
+                    } else if value.translation.width > 40 {
+                        onSwipeRight()
+                    }
+                }
+        )
+    }
+}
+
+// MARK: - Day Cell
+
+private struct DayCell: View {
+    let day: Date
+    let isSelected: Bool
+    let isToday: Bool
+    let hasDot: Bool
+
+    private static let weekdayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEEEE" // Single letter: M T W T F S S
+        return f
+    }()
+
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "d"
+        return f
+    }()
+
+    var body: some View {
+        VStack(spacing: 3) {
+            Text(Self.weekdayFormatter.string(from: day))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
+            ZStack {
+                if isSelected {
+                    Circle()
+                        .fill(Color.accentColor)
+                        .frame(width: 32, height: 32)
+                } else if isToday {
+                    Circle()
+                        .strokeBorder(Color.accentColor, lineWidth: 1.5)
+                        .frame(width: 32, height: 32)
+                }
+
+                Text(Self.dayFormatter.string(from: day))
+                    .font(.callout.weight(isToday || isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? .white : (isToday ? Color.accentColor : .primary))
+            }
+            .frame(width: 32, height: 32)
+
+            // Dot indicator
+            Circle()
+                .fill(hasDot ? Color.accentColor.opacity(isSelected ? 0 : 0.7) : Color.clear)
+                .frame(width: 4, height: 4)
+        }
+        .padding(.vertical, 4)
     }
 }
 
