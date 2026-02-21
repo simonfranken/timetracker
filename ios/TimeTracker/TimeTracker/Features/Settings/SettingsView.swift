@@ -18,7 +18,7 @@ struct SettingsView: View {
                                     Text(user.username.prefix(1).uppercased())
                                         .font(.title3)
                                         .fontWeight(.semibold)
-                                        .foregroundStyle(.accentColor)
+                                        .foregroundStyle(Color.accentColor)
                                 )
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(user.fullName ?? user.username)
