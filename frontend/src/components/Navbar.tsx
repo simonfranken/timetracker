@@ -47,20 +47,27 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <img src="/icon.svg" alt="TimeTracker Logo" className="h-8 w-8 drop-shadow-sm" />
+            <NavLink
+              className="flex-shrink-0 flex items-center"
+              to={"/dashboard"}
+            >
+              <img
+                src="/icon.svg"
+                alt="TimeTracker Logo"
+                className="h-8 w-8 drop-shadow-sm"
+              />
               <span className="ml-2 text-xl font-bold text-gray-900">
                 TimeTracker
               </span>
-            </div>
-            <div className="hidden sm:ml-8 sm:flex sm:space-x-4">
+            </NavLink>
+            <div className="hidden sm:ml-8 sm:flex sm:space-x-4 items-center">
               {/* Main Navigation Items */}
               {mainNavItems.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    `inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors h-min ${
                       isActive
                         ? "text-primary-600 bg-primary-50"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
