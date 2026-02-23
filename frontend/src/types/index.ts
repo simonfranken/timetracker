@@ -152,6 +152,7 @@ export interface BalanceCorrection {
   hours: number;
   description: string | null;
   createdAt: string;
+  deletedAt: string | null;
 }
 
 export interface WeekBalance {

@@ -100,11 +100,12 @@ model OngoingTimer {
 }
 
 model ClientTarget {
-  id          String   @id @default(uuid())
-  weeklyHours Float    @map("weekly_hours")
-  startDate   DateTime @map("start_date") @db.Date // Always a Monday
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id          String    @id @default(uuid())
+  weeklyHours Float     @map("weekly_hours")
+  startDate   DateTime  @map("start_date") @db.Date // Always a Monday
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   userId   String @map("user_id") @db.VarChar(255)
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -120,12 +121,13 @@ model ClientTarget {
 }
 
 model BalanceCorrection {
-  id          String   @id @default(uuid())
-  date        DateTime @map("date") @db.Date
+  id          String    @id @default(uuid())
+  date        DateTime  @map("date") @db.Date
   hours       Float
-  description String?  @db.VarChar(255)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  description String?   @db.VarChar(255)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   clientTargetId String       @map("client_target_id")
   clientTarget   ClientTarget @relation(fields: [clientTargetId], references: [id], onDelete: Cascade)

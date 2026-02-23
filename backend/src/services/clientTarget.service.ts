@@ -68,10 +68,10 @@ export interface ClientTargetWithBalance {
 export class ClientTargetService {
   async findAll(userId: string): Promise<ClientTargetWithBalance[]> {
     const targets = await prisma.clientTarget.findMany({
-      where: { userId, client: { deletedAt: null } },
+      where: { userId, deletedAt: null, client: { deletedAt: null } },
       include: {
         client: { select: { id: true, name: true } },
-        corrections: { orderBy: { date: 'asc' } },
+        corrections: { where: { deletedAt: null }, orderBy: { date: 'asc' } },
       },
       orderBy: { client: { name: 'asc' } },
     });
@@ -81,10 +81,10 @@ export class ClientTargetService {
 
   async findById(id: string, userId: string) {
     return prisma.clientTarget.findFirst({
-      where: { id, userId, client: { deletedAt: null } },
+      where: { id, userId, deletedAt: null, client: { deletedAt: null } },
       include: {
         client: { select: { id: true, name: true } },
-        corrections: { orderBy: { date: 'asc' } },
+        corrections: { where: { deletedAt: null }, orderBy: { date: 'asc' } },
       },
     });
   }
@@ -106,6 +106,18 @@ export class ClientTargetService {
     // Check for existing target (unique per user+client)
     const existing = await prisma.clientTarget.findFirst({ where: { userId, clientId: data.clientId } });
     if (existing) {
+      if (existing.deletedAt !== null) {
+        // Reactivate the soft-deleted target with the new settings
+        const reactivated = await prisma.clientTarget.update({
+          where: { id: existing.id },
+          data: { deletedAt: null, weeklyHours: data.weeklyHours, startDate },
+          include: {
+            client: { select: { id: true, name: true } },
+            corrections: { where: { deletedAt: null }, orderBy: { date: 'asc' } },
+          },
+        });
+        return this.computeBalance(reactivated);
+      }
       throw new BadRequestError('A target already exists for this client. Delete the existing one first or update it.');
     }
 
@@ -118,7 +130,7 @@ export class ClientTargetService {
       },
       include: {
         client: { select: { id: true, name: true } },
-        corrections: { orderBy: { date: 'asc' } },
+        corrections: { where: { deletedAt: null }, orderBy: { date: 'asc' } },
       },
     });
 
@@ -148,7 +160,7 @@ export class ClientTargetService {
       data: updateData,
       include: {
         client: { select: { id: true, name: true } },
-        corrections: { orderBy: { date: 'asc' } },
+        corrections: { where: { deletedAt: null }, orderBy: { date: 'asc' } },
       },
     });
 
@@ -158,7 +170,10 @@ export class ClientTargetService {
   async delete(id: string, userId: string): Promise<void> {
     const existing = await this.findById(id, userId);
     if (!existing) throw new NotFoundError('Client target not found');
-    await prisma.clientTarget.delete({ where: { id } });
+    await prisma.clientTarget.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
   }
 
   async addCorrection(targetId: string, userId: string, data: CreateCorrectionInput) {
@@ -188,11 +203,14 @@ export class ClientTargetService {
     if (!target) throw new NotFoundError('Client target not found');
 
     const correction = await prisma.balanceCorrection.findFirst({
-      where: { id: correctionId, clientTargetId: targetId },
+      where: { id: correctionId, clientTargetId: targetId, deletedAt: null },
     });
     if (!correction) throw new NotFoundError('Correction not found');
 
-    await prisma.balanceCorrection.delete({ where: { id: correctionId } });
+    await prisma.balanceCorrection.update({
+      where: { id: correctionId },
+      data: { deletedAt: new Date() },
+    });
   }
 
   private async computeBalance(target: {
