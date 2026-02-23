@@ -1,4 +1,3 @@
-import { Clock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function LoginPage() {
@@ -8,8 +7,8 @@ export function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8">
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-primary-100 rounded-full flex items-center justify-center">
-            <Clock className="h-8 w-8 text-primary-600" />
+          <div className="mx-auto h-16 w-16 flex items-center justify-center drop-shadow-sm">
+            <img src="/icon.svg" alt="TimeTracker Logo" className="h-16 w-16" />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">TimeTracker</h2>
           <p className="mt-2 text-sm text-gray-600">

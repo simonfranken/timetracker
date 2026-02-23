@@ -48,7 +48,7 @@ export function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <Clock className="h-8 w-8 text-primary-600" />
+              <img src="/icon.svg" alt="TimeTracker Logo" className="h-8 w-8 drop-shadow-sm" />
               <span className="ml-2 text-xl font-bold text-gray-900">
                 TimeTracker
               </span>
