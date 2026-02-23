@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818CF8" />
+      <stop offset="100%" stop-color="#4F46E5" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#4F46E5" flood-opacity="0.4" />
+    </filter>
+  </defs>
+
+  <!-- App Icon Background -->
+  <rect x="48" y="48" width="416" height="416" rx="96" fill="url(#bg)" filter="url(#shadow)" />
+
+  <!-- Inner Icon Group -->
+  <g stroke="#ffffff" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Stopwatch Top Button -->
+    <path d="M256 96 v44" stroke-width="28" />
+    <path d="M224 88 h64" stroke-width="24" />
+    
+    <!-- Stopwatch Side Button -->
+    <path d="M352 176 l 24 -24" stroke-width="24" />
+    <!-- Cap for side button -->
+    <path d="M362 138 l 28 28" stroke-width="24" />
+
+    <!-- Outer Ring -->
+    <circle cx="256" cy="272" r="132" stroke-width="28" />
+    
+    <!-- Clock Hands -->
+    <!-- Minute Hand -->
+    <path d="M256 184 v 88" stroke-width="24" />
+    <!-- Hour Hand -->
+    <path d="M256 272 l 48 32" stroke-width="24" />
+
+    <!-- Dial Tick Marks -->
+    <g stroke-width="12" opacity="0.6">
+      <line x1="256" y1="172" x2="256" y2="188" />
+      <line x1="256" y1="356" x2="256" y2="372" />
+      <line x1="172" y1="272" x2="188" y2="272" />
+      <line x1="340" y1="272" x2="324" y2="272" />
+    </g>
+  </g>
+</svg>
