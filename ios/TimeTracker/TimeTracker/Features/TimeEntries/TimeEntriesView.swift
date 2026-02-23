@@ -2,11 +2,13 @@ import SwiftUI
 
 struct TimeEntriesView: View {
     @StateObject private var viewModel = TimeEntriesViewModel()
-    @State private var selectedDate: Date = Calendar.current.startOfDay(for: Date())
-    
-    // For infinite paging, we use an offset from 'today'
-    @State private var dayOffset: Int = 0 
-    
+
+    // dayOffset is the source of truth: 0 = today, -1 = yesterday, etc.
+    @State private var dayOffset: Int = 0
+    // tabSelection is always snapped back to 1 (middle) after each swipe.
+    // Pages are: 0 = dayOffset-1, 1 = dayOffset, 2 = dayOffset+1
+    @State private var tabSelection: Int = 1
+
     @State private var showFilterSheet = false
     @State private var showAddEntry = false
     @State private var entryToEdit: TimeEntry?
@@ -101,20 +103,37 @@ struct TimeEntriesView: View {
     // MARK: - Main content
 
     private var mainContent: some View {
-        // We use a wide range of offsets to simulate infinite paging.
-        // -1000 days is roughly 2.7 years in the past.
-        // 1000 days is roughly 2.7 years in the future.
-        TabView(selection: $dayOffset) {
-            ForEach(-1000...1000, id: \.self) { offset in
-                let dayForPage = Calendar.current.date(byAdding: .day, value: offset, to: Calendar.current.startOfDay(for: Date())) ?? Date()
-                
+        // Only 3 pages exist at any time: previous, current, next.
+        // After each swipe settles, we reset tabSelection to 1 and shift
+        // dayOffset, so the carousel appears infinite while staying cheap.
+        TabView(selection: $tabSelection) {
+            ForEach(0..<3, id: \.self) { page in
+                let offset = dayOffset + (page - 1)
+                let day = Calendar.current.date(
+                    byAdding: .day,
+                    value: offset,
+                    to: Calendar.current.startOfDay(for: Date())
+                ) ?? Date()
+
                 ScrollView {
-                    dayEntriesSection(for: dayForPage)
+                    dayEntriesSection(for: day)
                 }
-                .tag(offset) // Important: tag must match the selection type (Int)
+                .tag(page)
             }
         }
-        .tabViewStyle(.page(indexDisplayMode: .never)) // Native swipe gesture
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .onChange(of: tabSelection) { _, newPage in
+            guard newPage != 1 else { return }
+            // Shift the logical day offset by how many pages we moved.
+            dayOffset += newPage - 1
+            // Snap back to the middle page without animation so the
+            // surrounding pages are refreshed invisibly.
+            var tx = Transaction()
+            tx.disablesAnimations = true
+            withTransaction(tx) {
+                tabSelection = 1
+            }
+        }
     }
 
     // MARK: - Day entries section
