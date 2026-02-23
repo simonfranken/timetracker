@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Play, Square, ChevronDown } from "lucide-react";
+import { useState, useRef } from "react";
+import { Play, Square, ChevronDown, Pencil, Check, X } from "lucide-react";
 import { useTimer } from "@/contexts/TimerContext";
 import { useProjects } from "@/hooks/useProjects";
 import { ProjectColorDot } from "@/components/ProjectColorDot";
@@ -27,6 +27,21 @@ function TimerDisplay({ totalSeconds }: { totalSeconds: number }) {
   );
 }
 
+/** Converts a HH:mm string to an ISO datetime, inferring the correct date.
+ *  If the resulting time would be in the future, it is assumed to belong to the previous day.
+ */
+function timeInputToIso(timeValue: string): string {
+  const [hours, minutes] = timeValue.split(":").map(Number);
+  const now = new Date();
+  const candidate = new Date(now);
+  candidate.setHours(hours, minutes, 0, 0);
+  // If the candidate is in the future, roll back one day
+  if (candidate > now) {
+    candidate.setDate(candidate.getDate() - 1);
+  }
+  return candidate.toISOString();
+}
+
 export function TimerWidget() {
   const {
     ongoingTimer,
@@ -35,10 +50,16 @@ export function TimerWidget() {
     startTimer,
     stopTimer,
     updateTimerProject,
+    updateTimerStartTime,
   } = useTimer();
   const { projects } = useProjects();
   const [showProjectSelect, setShowProjectSelect] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Start time editing state
+  const [editingStartTime, setEditingStartTime] = useState(false);
+  const [startTimeInput, setStartTimeInput] = useState("");
+  const startTimeInputRef = useRef<HTMLInputElement>(null);
 
   const handleStart = async () => {
     setError(null);
@@ -78,6 +99,42 @@ export function TimerWidget() {
     }
   };
 
+  const handleStartEditStartTime = () => {
+    if (!ongoingTimer) return;
+    const start = new Date(ongoingTimer.startTime);
+    const hh = start.getHours().toString().padStart(2, "0");
+    const mm = start.getMinutes().toString().padStart(2, "0");
+    setStartTimeInput(`${hh}:${mm}`);
+    setEditingStartTime(true);
+    // Focus the input on next render
+    setTimeout(() => startTimeInputRef.current?.focus(), 0);
+  };
+
+  const handleCancelEditStartTime = () => {
+    setEditingStartTime(false);
+    setError(null);
+  };
+
+  const handleConfirmStartTime = async () => {
+    if (!startTimeInput) return;
+    setError(null);
+    try {
+      const iso = timeInputToIso(startTimeInput);
+      await updateTimerStartTime(iso);
+      setEditingStartTime(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update start time");
+    }
+  };
+
+  const handleStartTimeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      void handleConfirmStartTime();
+    } else if (e.key === "Escape") {
+      handleCancelEditStartTime();
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-4 shadow-lg">
@@ -95,10 +152,47 @@ export function TimerWidget() {
           <>
             {/* Row 1 (mobile): timer + stop side by side. On sm+ dissolves into the parent flex row via contents. */}
             <div className="flex items-center justify-between w-full sm:contents">
-              {/* Timer Display */}
+              {/* Timer Display + Start Time Editor */}
               <div className="flex items-center space-x-2 shrink-0">
                 <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                <TimerDisplay totalSeconds={elapsedSeconds} />
+                {editingStartTime ? (
+                  <div className="flex items-center space-x-1">
+                    <span className="text-xs text-gray-500 mr-1">Started at</span>
+                    <input
+                      ref={startTimeInputRef}
+                      type="time"
+                      value={startTimeInput}
+                      onChange={(e) => setStartTimeInput(e.target.value)}
+                      onKeyDown={handleStartTimeKeyDown}
+                      className="font-mono text-lg font-bold text-gray-900 border border-primary-400 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-primary-500 w-28"
+                    />
+                    <button
+                      onClick={() => void handleConfirmStartTime()}
+                      title="Confirm"
+                      className="p-1 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+                    >
+                      <Check className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={handleCancelEditStartTime}
+                      title="Cancel"
+                      className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <TimerDisplay totalSeconds={elapsedSeconds} />
+                    <button
+                      onClick={handleStartEditStartTime}
+                      title="Adjust start time"
+                      className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Stop Button */}
