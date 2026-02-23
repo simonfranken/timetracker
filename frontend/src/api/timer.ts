@@ -1,6 +1,11 @@
 import apiClient from './client';
 import type { OngoingTimer, TimeEntry } from '@/types';
 
+export interface UpdateTimerPayload {
+  projectId?: string | null;
+  startTime?: string;
+}
+
 export const timerApi = {
   getOngoing: async (): Promise<OngoingTimer | null> => {
     const { data } = await apiClient.get<OngoingTimer | null>('/timer');
@@ -14,10 +19,8 @@ export const timerApi = {
     return data;
   },
 
-  update: async (projectId?: string | null): Promise<OngoingTimer> => {
-    const { data } = await apiClient.put<OngoingTimer>('/timer', {
-      projectId,
-    });
+  update: async (payload: UpdateTimerPayload): Promise<OngoingTimer> => {
+    const { data } = await apiClient.put<OngoingTimer>('/timer', payload);
     return data;
   },
 
@@ -26,5 +29,9 @@ export const timerApi = {
       projectId,
     });
     return data;
+  },
+
+  cancel: async (): Promise<void> => {
+    await apiClient.delete('/timer');
   },
 };

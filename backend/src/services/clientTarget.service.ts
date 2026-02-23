@@ -222,7 +222,7 @@ export class ClientTargetService {
     const rows = await prisma.$queryRaw<TrackedRow[]>(Prisma.sql`
       SELECT
         DATE_TRUNC('week', te.start_time AT TIME ZONE 'UTC') AS week_start,
-        COALESCE(SUM(EXTRACT(EPOCH FROM (te.end_time - te.start_time))), 0)::bigint AS tracked_seconds
+        COALESCE(SUM(EXTRACT(EPOCH FROM (te.end_time - te.start_time)) - (te.break_minutes * 60)), 0)::bigint AS tracked_seconds
       FROM time_entries te
       JOIN projects p ON p.id = te.project_id
       WHERE te.user_id = ${target.userId}

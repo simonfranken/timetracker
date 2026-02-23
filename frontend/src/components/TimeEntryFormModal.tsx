@@ -20,6 +20,7 @@ export function TimeEntryFormModal({ entry, onClose, createTimeEntry, updateTime
       return {
         startTime: getLocalISOString(new Date(entry.startTime)),
         endTime: getLocalISOString(new Date(entry.endTime)),
+        breakMinutes: entry.breakMinutes,
         description: entry.description || '',
         projectId: entry.projectId,
       };
@@ -29,6 +30,7 @@ export function TimeEntryFormModal({ entry, onClose, createTimeEntry, updateTime
     return {
       startTime: getLocalISOString(oneHourAgo),
       endTime: getLocalISOString(now),
+      breakMinutes: 0,
       description: '',
       projectId: projects?.[0]?.id || '',
     };
@@ -96,6 +98,16 @@ export function TimeEntryFormModal({ entry, onClose, createTimeEntry, updateTime
               className="input"
             />
           </div>
+        </div>
+        <div>
+          <label className="label">Break (minutes)</label>
+          <input
+            type="number"
+            min="0"
+            value={formData.breakMinutes ?? 0}
+            onChange={(e) => setFormData({ ...formData, breakMinutes: parseInt(e.target.value) || 0 })}
+            className="input"
+          />
         </div>
         <div>
           <label className="label">Description</label>

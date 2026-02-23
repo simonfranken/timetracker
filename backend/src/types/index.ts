@@ -38,6 +38,7 @@ export interface UpdateProjectInput {
 export interface CreateTimeEntryInput {
   startTime: string;
   endTime: string;
+  breakMinutes?: number;
   description?: string;
   projectId: string;
 }
@@ -45,6 +46,7 @@ export interface CreateTimeEntryInput {
 export interface UpdateTimeEntryInput {
   startTime?: string;
   endTime?: string;
+  breakMinutes?: number;
   description?: string;
   projectId?: string;
 }
@@ -71,6 +73,7 @@ export interface StartTimerInput {
 
 export interface UpdateTimerInput {
   projectId?: string | null;
+  startTime?: string;
 }
 
 export interface StopTimerInput {
