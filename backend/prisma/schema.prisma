@@ -62,12 +62,13 @@ model Project {
 }
 
 model TimeEntry {
-  id          String   @id @default(uuid())
-  startTime   DateTime @map("start_time") @db.Timestamptz()
-  endTime     DateTime @map("end_time") @db.Timestamptz()
-  description String?  @db.Text
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  startTime    DateTime @map("start_time") @db.Timestamptz()
+  endTime      DateTime @map("end_time") @db.Timestamptz()
+  breakMinutes Int      @default(0) @map("break_minutes")
+  description  String?  @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   userId    String  @map("user_id") @db.VarChar(255)
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)

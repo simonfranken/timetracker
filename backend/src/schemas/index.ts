@@ -31,6 +31,7 @@ export const UpdateProjectSchema = z.object({
 export const CreateTimeEntrySchema = z.object({
   startTime: z.string().datetime(),
   endTime: z.string().datetime(),
+  breakMinutes: z.number().int().min(0).optional(),
   description: z.string().max(1000).optional(),
   projectId: z.string().uuid(),
 });
@@ -38,6 +39,7 @@ export const CreateTimeEntrySchema = z.object({
 export const UpdateTimeEntrySchema = z.object({
   startTime: z.string().datetime().optional(),
   endTime: z.string().datetime().optional(),
+  breakMinutes: z.number().int().min(0).optional(),
   description: z.string().max(1000).optional(),
   projectId: z.string().uuid().optional(),
 });

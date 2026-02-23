@@ -43,7 +43,14 @@ export function formatDurationHoursMinutes(totalSeconds: number): string {
   return `${hours}h ${minutes}m`;
 }
 
-export function calculateDuration(startTime: string, endTime: string): number {
+export function calculateDuration(startTime: string, endTime: string, breakMinutes: number = 0): number {
+  const start = parseISO(startTime);
+  const end = parseISO(endTime);
+  const totalSeconds = differenceInSeconds(end, start);
+  return totalSeconds - (breakMinutes * 60);
+}
+
+export function calculateGrossDuration(startTime: string, endTime: string): number {
   const start = parseISO(startTime);
   const end = parseISO(endTime);
   return differenceInSeconds(end, start);
@@ -52,16 +59,18 @@ export function calculateDuration(startTime: string, endTime: string): number {
 export function formatDurationFromDates(
   startTime: string,
   endTime: string,
+  breakMinutes: number = 0,
 ): string {
-  const seconds = calculateDuration(startTime, endTime);
+  const seconds = calculateDuration(startTime, endTime, breakMinutes);
   return formatDuration(seconds);
 }
 
 export function formatDurationFromDatesHoursMinutes(
   startTime: string,
   endTime: string,
+  breakMinutes: number = 0,
 ): string {
-  const seconds = calculateDuration(startTime, endTime);
+  const seconds = calculateDuration(startTime, endTime, breakMinutes);
   return formatDurationHoursMinutes(seconds);
 }
 

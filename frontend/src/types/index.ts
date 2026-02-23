@@ -28,6 +28,7 @@ export interface TimeEntry {
   id: string;
   startTime: string;
   endTime: string;
+  breakMinutes: number;
   description: string | null;
   projectId: string;
   project: Pick<Project, 'id' | 'name' | 'color'> & {
@@ -129,6 +130,7 @@ export interface UpdateProjectInput {
 export interface CreateTimeEntryInput {
   startTime: string;
   endTime: string;
+  breakMinutes?: number;
   description?: string;
   projectId: string;
 }
@@ -136,6 +138,7 @@ export interface CreateTimeEntryInput {
 export interface UpdateTimeEntryInput {
   startTime?: string;
   endTime?: string;
+  breakMinutes?: number;
   description?: string;
   projectId?: string;
 }
