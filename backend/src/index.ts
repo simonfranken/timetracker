@@ -1,8 +1,9 @@
 import express from "express";
 import cors from "cors";
 import session from "express-session";
+import { PrismaSessionStore } from "@quixo3/prisma-session-store";
 import { config, validateConfig } from "./config";
-import { connectDatabase } from "./prisma/client";
+import { connectDatabase, prisma } from "./prisma/client";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 // Import routes
@@ -43,6 +44,11 @@ async function main() {
       resave: false,
       saveUninitialized: false,
       name: "sessionId",
+      store: new PrismaSessionStore(prisma, {
+        checkPeriod: 2 * 60 * 1000, // ms
+        dbRecordIdIsSessionId: true,
+        dbRecordIdFunction: undefined,
+      }),
       cookie: {
         secure: config.nodeEnv === "production",
         httpOnly: true,
