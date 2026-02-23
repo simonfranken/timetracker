@@ -30,4 +30,8 @@ export const timerApi = {
     });
     return data;
   },
+
+  cancel: async (): Promise<void> => {
+    await apiClient.delete('/timer');
+  },
 };

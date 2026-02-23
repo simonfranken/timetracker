@@ -138,6 +138,15 @@ export class TimerService {
     });
   }
 
+  async cancel(userId: string) {
+    const timer = await this.getOngoingTimer(userId);
+    if (!timer) {
+      throw new NotFoundError("No timer is running");
+    }
+
+    await prisma.ongoingTimer.delete({ where: { userId } });
+  }
+
   async stop(userId: string, data?: StopTimerInput) {
     const timer = await this.getOngoingTimer(userId);
     if (!timer) {

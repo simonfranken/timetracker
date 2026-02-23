@@ -18,6 +18,7 @@ interface TimerContextType {
   startTimer: (projectId?: string) => Promise<void>;
   updateTimerProject: (projectId?: string | null) => Promise<void>;
   updateTimerStartTime: (startTime: string) => Promise<void>;
+  cancelTimer: () => Promise<void>;
   stopTimer: (projectId?: string) => Promise<TimeEntry | null>;
 }
 
@@ -85,6 +86,14 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  // Cancel timer mutation
+  const cancelMutation = useMutation({
+    mutationFn: timerApi.cancel,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ongoingTimer"] });
+    },
+  });
+
   // Stop timer mutation
   const stopMutation = useMutation({
     mutationFn: timerApi.stop,
@@ -115,6 +124,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     [updateMutation],
   );
 
+  const cancelTimer = useCallback(async () => {
+    await cancelMutation.mutateAsync();
+  }, [cancelMutation]);
+
   const stopTimer = useCallback(
     async (projectId?: string): Promise<TimeEntry | null> => {
       try {
@@ -136,6 +149,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         startTimer,
         updateTimerProject,
         updateTimerStartTime,
+        cancelTimer,
         stopTimer,
       }}
     >
