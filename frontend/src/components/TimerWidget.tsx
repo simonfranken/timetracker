@@ -216,7 +216,9 @@ export function TimerWidget() {
                 </button>
                 <button
                   onClick={handleStop}
-                  className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                  disabled={!ongoingTimer.project}
+                  title={!ongoingTimer.project ? "Select a project to stop the timer" : undefined}
+                  className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-600"
                 >
                   <Square className="h-5 w-5 fill-current" />
                   <span>Stop</span>
