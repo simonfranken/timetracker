@@ -25,6 +25,14 @@ enum APIEndpoint {
     static let timer = "/timer"
     static let timerStart = "/timer/start"
     static let timerStop = "/timer/stop"
+
+    // Client Targets
+    static let clientTargets = "/client-targets"
+    static func clientTarget(id: String) -> String { "/client-targets/\(id)" }
+    static func clientTargetCorrections(targetId: String) -> String { "/client-targets/\(targetId)/corrections" }
+    static func clientTargetCorrection(targetId: String, correctionId: String) -> String {
+        "/client-targets/\(targetId)/corrections/\(correctionId)"
+    }
 }
 
 struct APIEndpoints {
