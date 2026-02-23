@@ -2,10 +2,19 @@ import SwiftUI
 
 struct TimeEntriesView: View {
     @StateObject private var viewModel = TimeEntriesViewModel()
+
+    // dayOffset is the source of truth: 0 = today, -1 = yesterday, etc.
+    @State private var dayOffset: Int = 0
+    // tabSelection is always snapped back to 1 (middle) after each swipe.
+    // Pages are: 0 = dayOffset-1, 1 = dayOffset, 2 = dayOffset+1
+    @State private var tabSelection: Int = 1
+
+    @State private var showFilterSheet = false
     @State private var showAddEntry = false
+    @State private var entryToEdit: TimeEntry?
     @State private var entryToDelete: TimeEntry?
     @State private var showDeleteConfirmation = false
-    
+
     var body: some View {
         NavigationStack {
             Group {
@@ -15,109 +24,338 @@ struct TimeEntriesView: View {
                     ErrorView(message: error) {
                         Task { await viewModel.loadEntries() }
                     }
-                } else if viewModel.entries.isEmpty {
-                    EmptyView(
-                        icon: "clock",
-                        title: "No Time Entries",
-                        message: "Start tracking your time to see entries here."
-                    )
                 } else {
-                    entriesList
+                    mainContent
                 }
             }
-            .navigationTitle("Time Entries")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showAddEntry = true
-                    } label: {
-                        Image(systemName: "plus")
+            .navigationTitle("Entries")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { toolbarContent }
+            .task { await viewModel.loadEntries() }
+            .refreshable { await viewModel.loadEntries() }
+            .sheet(isPresented: $showFilterSheet) {
+                TimeEntriesFilterSheet(viewModel: viewModel) {
+                    Task { await viewModel.loadEntries() }
+                }
+            }
+            .sheet(isPresented: $showAddEntry) {
+                TimeEntryDetailSheet(entry: nil) {
+                    Task { await viewModel.loadEntries() }
+                }
+            }
+            .sheet(item: $entryToEdit) { entry in
+                TimeEntryDetailSheet(entry: entry) {
+                    Task { await viewModel.loadEntries() }
+                }
+            }
+            .alert("Delete Entry?", isPresented: $showDeleteConfirmation, presenting: entryToDelete) { entry in
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
+                    Task { await viewModel.deleteEntry(entry) }
+                }
+            } message: { entry in
+                Text("Delete the time entry for '\(entry.project.name)'? This cannot be undone.")
+            }
+        }
+    }
+
+    // MARK: - Toolbar
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            Button { showAddEntry = true } label: { Image(systemName: "plus") }
+        }
+        ToolbarItem(placement: .topBarLeading) {
+            Button {
+                Task { await viewModel.loadFilterSupportData() }
+                showFilterSheet = true
+            } label: {
+                Image(systemName: viewModel.activeFilters.isEmpty ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+            }
+        }
+        
+        // Place the DatePicker in the principal placement (center of nav bar)
+        ToolbarItem(placement: .principal) {
+            DatePicker(
+                "",
+                selection: Binding(
+                    get: {
+                        Calendar.current.date(byAdding: .day, value: dayOffset, to: Calendar.current.startOfDay(for: Date())) ?? Date()
+                    },
+                    set: { newDate in
+                        let today = Calendar.current.startOfDay(for: Date())
+                        let normalizedNewDate = Calendar.current.startOfDay(for: newDate)
+                        let components = Calendar.current.dateComponents([.day], from: today, to: normalizedNewDate)
+                        if let dayDifference = components.day {
+                            dayOffset = dayDifference
+                        }
+                    }
+                ),
+                displayedComponents: .date
+            )
+            .datePickerStyle(.compact)
+            .labelsHidden()
+            .environment(\.locale, Locale.current) // Ensure correct start of week
+        }
+    }
+
+    // MARK: - Main content
+
+    private var mainContent: some View {
+        // Only 3 pages exist at any time: previous, current, next.
+        // After each swipe settles, we reset tabSelection to 1 and shift
+        // dayOffset, so the carousel appears infinite while staying cheap.
+        TabView(selection: $tabSelection) {
+            ForEach(0..<3, id: \.self) { page in
+                let offset = dayOffset + (page - 1)
+                let day = Calendar.current.date(
+                    byAdding: .day,
+                    value: offset,
+                    to: Calendar.current.startOfDay(for: Date())
+                ) ?? Date()
+
+                ScrollView {
+                    dayEntriesSection(for: day)
+                }
+                .tag(page)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .onChange(of: tabSelection) { _, newPage in
+            guard newPage != 1 else { return }
+            // Shift the logical day offset by how many pages we moved.
+            dayOffset += newPage - 1
+            // Snap back to the middle page without animation so the
+            // surrounding pages are refreshed invisibly.
+            var tx = Transaction()
+            tx.disablesAnimations = true
+            withTransaction(tx) {
+                tabSelection = 1
+            }
+        }
+    }
+
+    // MARK: - Day entries section
+
+    private func dayEntriesSection(for day: Date) -> some View {
+        let dayEntries = viewModel.entries(for: day)
+        return VStack(alignment: .leading, spacing: 0) {
+            
+            // Optional: A small summary header for the day
+            HStack {
+                Text(dayTitle(day))
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                Spacer()
+                Text(dayEntries.isEmpty ? "No entries" : "\(dayEntries.count) \(dayEntries.count == 1 ? "entry" : "entries")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 12)
+
+            if dayEntries.isEmpty {
+                Text("No entries for this day")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 32)
+            } else {
+                ForEach(Array(dayEntries.enumerated()), id: \.element.id) { index, entry in
+                    EntryRow(entry: entry)
+                        .contentShape(Rectangle())
+                        .onTapGesture { entryToEdit = entry }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                entryToDelete = entry
+                                showDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    if index < dayEntries.count - 1 {
+                        Divider().padding(.leading, 56)
                     }
                 }
             }
-            .task {
-                await viewModel.loadEntries()
-            }
-            .sheet(isPresented: $showAddEntry) {
-                TimeEntryFormView(onSave: {
-                    Task { await viewModel.loadEntries() }
-                })
-            }
         }
+        .padding(.bottom, 40) // Give some breathing room at the bottom of the scroll
     }
-    
-    private var entriesList: some View {
-        List {
-            ForEach(viewModel.entries) { entry in
-                TimeEntryRow(entry: entry)
-            }
-            .onDelete { indexSet in
-                if let index = indexSet.first {
-                    entryToDelete = viewModel.entries[index]
-                    showDeleteConfirmation = true
-                }
-            }
-        }
-        .alert("Delete Time Entry?", isPresented: $showDeleteConfirmation, presenting: entryToDelete) { entry in
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
-                Task {
-                    await viewModel.deleteEntry(entry)
-                }
-            }
-        } message: { entry in
-            Text("This will permanently delete the time entry for '\(entry.project.name)'. This action cannot be undone.")
-        }
-        .refreshable {
-            await viewModel.loadEntries()
-        }
+
+    // MARK: - Helpers
+
+    private func dayTitle(_ date: Date) -> String {
+        let cal = Calendar.current
+        if cal.isDateInToday(date) { return "Today" }
+        if cal.isDateInYesterday(date) { return "Yesterday" }
+        if cal.isDateInTomorrow(date) { return "Tomorrow" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE, MMM d"
+        return formatter.string(from: date)
     }
 }
 
-struct TimeEntryRow: View {
+// MARK: - Entry Row
+
+struct EntryRow: View {
     let entry: TimeEntry
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                ProjectColorDot(color: entry.project.color)
+        HStack(alignment: .top, spacing: 12) {
+            // Color dot
+            ProjectColorDot(color: entry.project.color, size: 12)
+                .padding(.top, 4)
+
+            VStack(alignment: .leading, spacing: 3) {
                 Text(entry.project.name)
-                    .font(.headline)
-                Spacer()
-                Text(entry.duration.formattedHours)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .fontWeight(.medium)
+
+                HStack(spacing: 6) {
+                    Text(timeRange)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("·")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(entry.project.client.name)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let desc = entry.description, !desc.isEmpty {
+                    Text(desc)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
             }
-            
-            HStack {
-                Text(formatDateRange(start: entry.startTime, end: entry.endTime))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(entry.project.client.name)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            
-            if let description = entry.description {
-                Text(description)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
+
+            Spacer()
+
+            Text(entry.duration.formattedShortDuration)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 4)
+        .padding(.horizontal)
+        .padding(.vertical, 10)
     }
-    
-    private func formatDateRange(start: String, end: String) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d, HH:mm"
-        
-        guard let startDate = Date.fromISO8601(start),
-              let endDate = Date.fromISO8601(end) else {
-            return ""
+
+    private var timeRange: String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "HH:mm"
+        let start = Date.fromISO8601(entry.startTime).map { fmt.string(from: $0) } ?? ""
+        let end = Date.fromISO8601(entry.endTime).map { fmt.string(from: $0) } ?? ""
+        return "\(start) – \(end)"
+    }
+}
+
+
+// MARK: - Filter Sheet
+
+struct TimeEntriesFilterSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var viewModel: TimeEntriesViewModel
+    let onApply: () -> Void
+
+    @State private var startDate: Date = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+    @State private var endDate: Date = Date()
+    @State private var useStartDate = false
+    @State private var useEndDate = false
+    @State private var selectedProjectId: String?
+    @State private var selectedProjectName: String?
+    @State private var selectedClientId: String?
+    @State private var selectedClientName: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Date Range") {
+                    Toggle("From", isOn: $useStartDate)
+                    if useStartDate {
+                        DatePicker("", selection: $startDate, displayedComponents: .date)
+                            .labelsHidden()
+                    }
+                    Toggle("To", isOn: $useEndDate)
+                    if useEndDate {
+                        DatePicker("", selection: $endDate, displayedComponents: .date)
+                            .labelsHidden()
+                    }
+                }
+
+                Section("Project") {
+                    Picker("Project", selection: $selectedProjectId) {
+                        Text("Any Project").tag(nil as String?)
+                        ForEach(viewModel.projects) { project in
+                            HStack {
+                                ProjectColorDot(color: project.color, size: 10)
+                                Text(project.name)
+                            }
+                            .tag(project.id as String?)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+                    .onChange(of: selectedProjectId) { _, newId in
+                        selectedProjectName = viewModel.projects.first { $0.id == newId }?.name
+                    }
+                }
+
+                Section("Client") {
+                    Picker("Client", selection: $selectedClientId) {
+                        Text("Any Client").tag(nil as String?)
+                        ForEach(viewModel.clients) { client in
+                            Text(client.name).tag(client.id as String?)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+                    .onChange(of: selectedClientId) { _, newId in
+                        selectedClientName = viewModel.clients.first { $0.id == newId }?.name
+                    }
+                }
+
+                Section {
+                    Button("Clear All Filters", role: .destructive) {
+                        useStartDate = false
+                        useEndDate = false
+                        selectedProjectId = nil
+                        selectedClientId = nil
+                    }
+                }
+            }
+            .navigationTitle("Filter Entries")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Apply") { applyAndDismiss() }
+                }
+            }
+            .onAppear { loadCurrentFilters() }
         }
-        
-        return "\(formatter.string(from: startDate)) - \(formatter.string(from: endDate))"
+    }
+
+    private func loadCurrentFilters() {
+        let f = viewModel.activeFilters
+        if let s = f.startDate { startDate = s; useStartDate = true }
+        if let e = f.endDate { endDate = e; useEndDate = true }
+        selectedProjectId = f.projectId
+        selectedClientId = f.clientId
+    }
+
+    private func applyAndDismiss() {
+        viewModel.activeFilters = TimeEntryActiveFilters(
+            startDate: useStartDate ? startDate : nil,
+            endDate: useEndDate ? endDate : nil,
+            projectId: selectedProjectId,
+            projectName: selectedProjectName,
+            clientId: selectedClientId,
+            clientName: selectedClientName
+        )
+        dismiss()
+        onApply()
     }
 }
