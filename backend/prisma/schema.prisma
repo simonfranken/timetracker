@@ -25,11 +25,12 @@ model User {
 }
 
 model Client {
-  id          String   @id @default(uuid())
-  name        String   @db.VarChar(255)
-  description String?  @db.Text
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id          String    @id @default(uuid())
+  name        String    @db.VarChar(255)
+  description String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   userId        String         @map("user_id") @db.VarChar(255)
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -41,17 +42,18 @@ model Client {
 }
 
 model Project {
-  id          String   @id @default(uuid())
-  name        String   @db.VarChar(255)
-  description String?  @db.Text
-  color       String?  @db.VarChar(7) // Hex color code
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id          String    @id @default(uuid())
+  name        String    @db.VarChar(255)
+  description String?   @db.Text
+  color       String?   @db.VarChar(7) // Hex color code
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   userId   String @map("user_id") @db.VarChar(255)
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   clientId String @map("client_id")
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client   Client @relation(fields: [clientId], references: [id])
 
   timeEntries   TimeEntry[]
   ongoingTimers OngoingTimer[]
@@ -62,18 +64,19 @@ model Project {
 }
 
 model TimeEntry {
-  id           String   @id @default(uuid())
-  startTime    DateTime @map("start_time") @db.Timestamptz()
-  endTime      DateTime @map("end_time") @db.Timestamptz()
-  breakMinutes Int      @default(0) @map("break_minutes")
-  description  String?  @db.Text
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id           String    @id @default(uuid())
+  startTime    DateTime  @map("start_time") @db.Timestamptz()
+  endTime      DateTime  @map("end_time") @db.Timestamptz()
+  breakMinutes Int       @default(0) @map("break_minutes")
+  description  String?   @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
 
   userId    String  @map("user_id") @db.VarChar(255)
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   projectId String  @map("project_id")
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id])
 
   @@index([userId])
   @@index([userId, startTime])

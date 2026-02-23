@@ -5,14 +5,14 @@ import type { CreateClientInput, UpdateClientInput } from "../types";
 export class ClientService {
   async findAll(userId: string) {
     return prisma.client.findMany({
-      where: { userId },
+      where: { userId, deletedAt: null },
       orderBy: { name: "asc" },
     });
   }
 
   async findById(id: string, userId: string) {
     return prisma.client.findFirst({
-      where: { id, userId },
+      where: { id, userId, deletedAt: null },
     });
   }
 
@@ -43,8 +43,9 @@ export class ClientService {
       throw new NotFoundError("Client not found");
     }
 
-    await prisma.client.delete({
+    await prisma.client.update({
       where: { id },
+      data: { deletedAt: new Date() },
     });
   }
 }

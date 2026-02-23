@@ -11,6 +11,7 @@ export interface Client {
   description: string | null;
   createdAt: string;
   updatedAt: string;
+  deletedAt: string | null;
 }
 
 export interface Project {
@@ -22,6 +23,7 @@ export interface Project {
   client: Pick<Client, 'id' | 'name'>;
   createdAt: string;
   updatedAt: string;
+  deletedAt: string | null;
 }
 
 export interface TimeEntry {
@@ -36,6 +38,7 @@ export interface TimeEntry {
   };
   createdAt: string;
   updatedAt: string;
+  deletedAt: string | null;
 }
 
 export interface OngoingTimer {

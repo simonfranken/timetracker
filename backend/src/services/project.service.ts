@@ -7,6 +7,8 @@ export class ProjectService {
     return prisma.project.findMany({
       where: {
         userId,
+        deletedAt: null,
+        client: { deletedAt: null },
         ...(clientId && { clientId }),
       },
       orderBy: { name: "asc" },
@@ -23,7 +25,12 @@ export class ProjectService {
 
   async findById(id: string, userId: string) {
     return prisma.project.findFirst({
-      where: { id, userId },
+      where: {
+        id,
+        userId,
+        deletedAt: null,
+        client: { deletedAt: null },
+      },
       include: {
         client: {
           select: {
@@ -36,9 +43,9 @@ export class ProjectService {
   }
 
   async create(userId: string, data: CreateProjectInput) {
-    // Verify the client belongs to the user
+    // Verify the client belongs to the user and is not soft-deleted
     const client = await prisma.client.findFirst({
-      where: { id: data.clientId, userId },
+      where: { id: data.clientId, userId, deletedAt: null },
     });
 
     if (!client) {
@@ -70,10 +77,10 @@ export class ProjectService {
       throw new NotFoundError("Project not found");
     }
 
-    // If clientId is being updated, verify it belongs to the user
+    // If clientId is being updated, verify it belongs to the user and is not soft-deleted
     if (data.clientId) {
       const client = await prisma.client.findFirst({
-        where: { id: data.clientId, userId },
+        where: { id: data.clientId, userId, deletedAt: null },
       });
 
       if (!client) {
@@ -108,8 +115,9 @@ export class ProjectService {
       throw new NotFoundError("Project not found");
     }
 
-    await prisma.project.delete({
+    await prisma.project.update({
       where: { id },
+      data: { deletedAt: new Date() },
     });
   }
 }

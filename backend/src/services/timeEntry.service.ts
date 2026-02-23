@@ -46,7 +46,11 @@ export class TimeEntryService {
           COUNT(te.id)::bigint AS entry_count
         FROM time_entries te
         JOIN projects p ON p.id = te.project_id
+        JOIN clients  c ON c.id = p.client_id
         WHERE te.user_id = ${userId}
+          AND te.deleted_at IS NULL
+          AND p.deleted_at IS NULL
+          AND c.deleted_at IS NULL
         ${filterClause}
         GROUP BY p.id, p.name, p.color
         ORDER BY total_seconds DESC
@@ -69,6 +73,9 @@ export class TimeEntryService {
         JOIN projects p ON p.id = te.project_id
         JOIN clients  c ON c.id = p.client_id
         WHERE te.user_id = ${userId}
+          AND te.deleted_at IS NULL
+          AND p.deleted_at IS NULL
+          AND c.deleted_at IS NULL
         ${filterClause}
         GROUP BY c.id, c.name
         ORDER BY total_seconds DESC
@@ -81,7 +88,11 @@ export class TimeEntryService {
             COUNT(te.id)::bigint AS entry_count
           FROM time_entries te
           JOIN projects p ON p.id = te.project_id
+          JOIN clients  c ON c.id = p.client_id
           WHERE te.user_id = ${userId}
+            AND te.deleted_at IS NULL
+            AND p.deleted_at IS NULL
+            AND c.deleted_at IS NULL
           ${filterClause}
         `,
       ),
@@ -125,10 +136,11 @@ export class TimeEntryService {
 
     const where: {
       userId: string;
+      deletedAt: null;
       startTime?: { gte?: Date; lte?: Date };
       projectId?: string;
-      project?: { clientId?: string };
-    } = { userId };
+      project?: { deletedAt: null; clientId?: string; client: { deletedAt: null } };
+    } = { userId, deletedAt: null };
 
     if (startDate || endDate) {
       where.startTime = {};
@@ -140,9 +152,13 @@ export class TimeEntryService {
       where.projectId = projectId;
     }
 
-    if (clientId) {
-      where.project = { clientId };
-    }
+    // Always filter out entries whose project or client is soft-deleted,
+    // merging the optional clientId filter into the project relation filter.
+    where.project = {
+      deletedAt: null,
+      client: { deletedAt: null },
+      ...(clientId && { clientId }),
+    };
 
     const [entries, total] = await Promise.all([
       prisma.timeEntry.findMany({
@@ -182,7 +198,12 @@ export class TimeEntryService {
 
   async findById(id: string, userId: string) {
     return prisma.timeEntry.findFirst({
-      where: { id, userId },
+      where: {
+        id,
+        userId,
+        deletedAt: null,
+        project: { deletedAt: null, client: { deletedAt: null } },
+      },
       include: {
         project: {
           select: {
@@ -217,9 +238,9 @@ export class TimeEntryService {
       throw new BadRequestError("Break time cannot exceed total duration");
     }
 
-    // Verify the project belongs to the user
+    // Verify the project belongs to the user and is not soft-deleted (nor its client)
     const project = await prisma.project.findFirst({
-      where: { id: data.projectId, userId },
+      where: { id: data.projectId, userId, deletedAt: null, client: { deletedAt: null } },
     });
 
     if (!project) {
@@ -288,10 +309,10 @@ export class TimeEntryService {
       throw new BadRequestError("Break time cannot exceed total duration");
     }
 
-    // If project changed, verify it belongs to the user
+    // If project changed, verify it belongs to the user and is not soft-deleted
     if (data.projectId && data.projectId !== entry.projectId) {
       const project = await prisma.project.findFirst({
-        where: { id: data.projectId, userId },
+        where: { id: data.projectId, userId, deletedAt: null, client: { deletedAt: null } },
       });
 
       if (!project) {
@@ -345,8 +366,9 @@ export class TimeEntryService {
       throw new NotFoundError("Time entry not found");
     }
 
-    await prisma.timeEntry.delete({
+    await prisma.timeEntry.update({
       where: { id },
+      data: { deletedAt: new Date() },
     });
   }
 }
