@@ -102,9 +102,24 @@ export class TimerService {
       projectId = data.projectId;
     }
 
+    // Validate startTime if provided
+    let startTime: Date | undefined = undefined;
+    if (data.startTime) {
+      const parsed = new Date(data.startTime);
+      const now = new Date();
+      if (parsed >= now) {
+        throw new BadRequestError("Start time must be in the past");
+      }
+      startTime = parsed;
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (projectId !== undefined) updateData.projectId = projectId;
+    if (startTime !== undefined) updateData.startTime = startTime;
+
     return prisma.ongoingTimer.update({
       where: { userId },
-      data: projectId !== undefined ? { projectId } : {},
+      data: updateData,
       include: {
         project: {
           select: {
@@ -121,6 +136,15 @@ export class TimerService {
         },
       },
     });
+  }
+
+  async cancel(userId: string) {
+    const timer = await this.getOngoingTimer(userId);
+    if (!timer) {
+      throw new NotFoundError("No timer is running");
+    }
+
+    await prisma.ongoingTimer.delete({ where: { userId } });
   }
 
   async stop(userId: string, data?: StopTimerInput) {

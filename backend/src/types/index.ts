@@ -71,6 +71,7 @@ export interface StartTimerInput {
 
 export interface UpdateTimerInput {
   projectId?: string | null;
+  startTime?: string;
 }
 
 export interface StopTimerInput {

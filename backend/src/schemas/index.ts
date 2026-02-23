@@ -64,6 +64,7 @@ export const StartTimerSchema = z.object({
 
 export const UpdateTimerSchema = z.object({
   projectId: z.string().uuid().optional().nullable(),
+  startTime: z.string().datetime().optional(),
 });
 
 export const StopTimerSchema = z.object({
