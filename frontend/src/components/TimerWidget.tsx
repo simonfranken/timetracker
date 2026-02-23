@@ -56,7 +56,6 @@ export function TimerWidget() {
   const { projects } = useProjects();
   const [showProjectSelect, setShowProjectSelect] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmCancel, setConfirmCancel] = useState(false);
 
   // Start time editing state
   const [editingStartTime, setEditingStartTime] = useState(false);
@@ -74,7 +73,6 @@ export function TimerWidget() {
 
   const handleStop = async () => {
     setError(null);
-    setConfirmCancel(false);
     try {
       await stopTimer();
     } catch (err) {
@@ -86,7 +84,6 @@ export function TimerWidget() {
     setError(null);
     try {
       await cancelTimer();
-      setConfirmCancel(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to cancel timer");
     }
@@ -210,41 +207,20 @@ export function TimerWidget() {
 
               {/* Stop + Cancel Buttons */}
               <div className="flex items-center space-x-2 shrink-0 sm:order-last">
-                {confirmCancel ? (
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600">Discard timer?</span>
-                    <button
-                      onClick={() => void handleCancelTimer()}
-                      className="flex items-center space-x-1 px-3 py-2 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span>Discard</span>
-                    </button>
-                    <button
-                      onClick={() => setConfirmCancel(false)}
-                      className="px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors text-sm"
-                    >
-                      Keep
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => setConfirmCancel(true)}
-                      title="Discard timer"
-                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={handleStop}
-                      className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
-                    >
-                      <Square className="h-5 w-5 fill-current" />
-                      <span>Stop</span>
-                    </button>
-                  </>
-                )}
+                <button
+                  onClick={() => void handleCancelTimer()}
+                  title="Discard timer"
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={handleStop}
+                  className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                >
+                  <Square className="h-5 w-5 fill-current" />
+                  <span>Stop</span>
+                </button>
               </div>
             </div>
 
