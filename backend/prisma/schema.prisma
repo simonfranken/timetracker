@@ -10,7 +10,7 @@ datasource db {
 model User {
   id        String   @id @db.VarChar(255)
   username  String   @db.VarChar(255)
-  fullName  String?  @db.VarChar(255) @map("full_name")
+  fullName  String?  @map("full_name") @db.VarChar(255)
   email     String   @db.VarChar(255)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -31,9 +31,9 @@ model Client {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  userId   String @map("user_id") @db.VarChar(255)
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projects Project[]
+  userId        String         @map("user_id") @db.VarChar(255)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects      Project[]
   clientTargets ClientTarget[]
 
   @@index([userId])
@@ -41,10 +41,10 @@ model Client {
 }
 
 model Project {
-  id          String  @id @default(uuid())
-  name        String  @db.VarChar(255)
-  description String? @db.Text
-  color       String? @db.VarChar(7) // Hex color code
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  color       String?  @db.VarChar(7) // Hex color code
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -53,7 +53,7 @@ model Project {
   clientId String @map("client_id")
   client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  timeEntries  TimeEntry[]
+  timeEntries   TimeEntry[]
   ongoingTimers OngoingTimer[]
 
   @@index([userId])
@@ -62,16 +62,17 @@ model Project {
 }
 
 model TimeEntry {
-  id          String   @id @default(uuid())
-  startTime   DateTime @map("start_time") @db.Timestamptz()
-  endTime     DateTime @map("end_time") @db.Timestamptz()
-  description String?  @db.Text
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  startTime    DateTime @map("start_time") @db.Timestamptz()
+  endTime      DateTime @map("end_time") @db.Timestamptz()
+  breakMinutes Int      @default(0) @map("break_minutes")
+  description  String?  @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  userId    String @map("user_id") @db.VarChar(255)
-  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projectId String @map("project_id")
+  userId    String  @map("user_id") @db.VarChar(255)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String  @map("project_id")
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -86,9 +87,9 @@ model OngoingTimer {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  userId    String  @map("user_id") @db.VarChar(255) @unique
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projectId String? @map("project_id")
+  userId    String   @unique @map("user_id") @db.VarChar(255)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String?  @map("project_id")
   project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([userId])
@@ -96,11 +97,11 @@ model OngoingTimer {
 }
 
 model ClientTarget {
-  id           String   @id @default(uuid())
-  weeklyHours  Float    @map("weekly_hours")
-  startDate    DateTime @map("start_date") @db.Date // Always a Monday
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid())
+  weeklyHours Float    @map("weekly_hours")
+  startDate   DateTime @map("start_date") @db.Date // Always a Monday
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   userId   String @map("user_id") @db.VarChar(255)
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -128,4 +129,13 @@ model BalanceCorrection {
 
   @@index([clientTargetId])
   @@map("balance_corrections")
+}
+
+model Session {
+  id        String   @id
+  sid       String   @unique
+  data      String   @db.Text
+  expiresAt DateTime @map("expires_at")
+
+  @@map("sessions")
 }

@@ -56,7 +56,7 @@ export function DashboardPage() {
 
   const totalTodaySeconds =
     todayEntries?.entries.reduce((total, entry) => {
-      return total + calculateDuration(entry.startTime, entry.endTime);
+      return total + calculateDuration(entry.startTime, entry.endTime, entry.breakMinutes);
     }, 0) || 0;
 
   const targetsWithData = targets?.filter(t => t.weeks.length > 0) ?? [];
@@ -216,7 +216,10 @@ export function DashboardPage() {
                       <div className="text-xs text-gray-400">{formatTime(entry.startTime)} – {formatTime(entry.endTime)}</div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-mono">
-                      {formatDurationFromDatesHoursMinutes(entry.startTime, entry.endTime)}
+                      {formatDurationFromDatesHoursMinutes(entry.startTime, entry.endTime, entry.breakMinutes)}
+                      {entry.breakMinutes > 0 && (
+                        <span className="text-xs text-gray-400 ml-1">(−{entry.breakMinutes}m break)</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
                       <button onClick={() => handleOpenModal(entry)} className="p-1.5 text-gray-400 hover:text-gray-600 mr-1"><Edit2 className="h-4 w-4" /></button>

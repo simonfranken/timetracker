@@ -48,6 +48,16 @@ router.put(
   }
 );
 
+// DELETE /api/timer - Cancel (discard) the ongoing timer without creating a time entry
+router.delete('/', requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    await timerService.cancel(req.user!.id);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
 // POST /api/timer/stop - Stop timer
 router.post(
   '/stop',

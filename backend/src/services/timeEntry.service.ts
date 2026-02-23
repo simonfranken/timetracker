@@ -42,7 +42,7 @@ export class TimeEntryService {
           p.id   AS project_id,
           p.name AS project_name,
           p.color AS project_color,
-          COALESCE(SUM(EXTRACT(EPOCH FROM (te.end_time - te.start_time))), 0)::bigint AS total_seconds,
+          COALESCE(SUM(EXTRACT(EPOCH FROM (te.end_time - te.start_time)) - (te.break_minutes * 60)), 0)::bigint AS total_seconds,
           COUNT(te.id)::bigint AS entry_count
         FROM time_entries te
         JOIN projects p ON p.id = te.project_id
@@ -63,7 +63,7 @@ export class TimeEntryService {
         SELECT
           c.id   AS client_id,
           c.name AS client_name,
-          COALESCE(SUM(EXTRACT(EPOCH FROM (te.end_time - te.start_time))), 0)::bigint AS total_seconds,
+          COALESCE(SUM(EXTRACT(EPOCH FROM (te.end_time - te.start_time)) - (te.break_minutes * 60)), 0)::bigint AS total_seconds,
           COUNT(te.id)::bigint AS entry_count
         FROM time_entries te
         JOIN projects p ON p.id = te.project_id
@@ -77,7 +77,7 @@ export class TimeEntryService {
       prisma.$queryRaw<{ total_seconds: bigint; entry_count: bigint }[]>(
         Prisma.sql`
           SELECT
-            COALESCE(SUM(EXTRACT(EPOCH FROM (te.end_time - te.start_time))), 0)::bigint AS total_seconds,
+            COALESCE(SUM(EXTRACT(EPOCH FROM (te.end_time - te.start_time)) - (te.break_minutes * 60)), 0)::bigint AS total_seconds,
             COUNT(te.id)::bigint AS entry_count
           FROM time_entries te
           JOIN projects p ON p.id = te.project_id
@@ -204,10 +204,17 @@ export class TimeEntryService {
   async create(userId: string, data: CreateTimeEntryInput) {
     const startTime = new Date(data.startTime);
     const endTime = new Date(data.endTime);
+    const breakMinutes = data.breakMinutes ?? 0;
 
     // Validate end time is after start time
     if (endTime <= startTime) {
       throw new BadRequestError("End time must be after start time");
+    }
+
+    // Validate break time doesn't exceed duration
+    const durationMinutes = (endTime.getTime() - startTime.getTime()) / 60000;
+    if (breakMinutes > durationMinutes) {
+      throw new BadRequestError("Break time cannot exceed total duration");
     }
 
     // Verify the project belongs to the user
@@ -235,6 +242,7 @@ export class TimeEntryService {
       data: {
         startTime,
         endTime,
+        breakMinutes,
         description: data.description,
         userId,
         projectId: data.projectId,
@@ -267,10 +275,17 @@ export class TimeEntryService {
       ? new Date(data.startTime)
       : entry.startTime;
     const endTime = data.endTime ? new Date(data.endTime) : entry.endTime;
+    const breakMinutes = data.breakMinutes ?? entry.breakMinutes;
 
     // Validate end time is after start time
     if (endTime <= startTime) {
       throw new BadRequestError("End time must be after start time");
+    }
+
+    // Validate break time doesn't exceed duration
+    const durationMinutes = (endTime.getTime() - startTime.getTime()) / 60000;
+    if (breakMinutes > durationMinutes) {
+      throw new BadRequestError("Break time cannot exceed total duration");
     }
 
     // If project changed, verify it belongs to the user
@@ -302,6 +317,7 @@ export class TimeEntryService {
       data: {
         startTime,
         endTime,
+        breakMinutes,
         description: data.description,
         projectId: data.projectId,
       },
