@@ -2,26 +2,18 @@ import SwiftUI
 
 struct TimeEntriesView: View {
     @StateObject private var viewModel = TimeEntriesViewModel()
-    @State private var selectedDay: Date? = Calendar.current.startOfDay(for: Date())
-    @State private var visibleWeekStart: Date = Self.mondayOfWeek(containing: Date())
+
+    // dayOffset is the source of truth: 0 = today, -1 = yesterday, etc.
+    @State private var dayOffset: Int = 0
+    // tabSelection is always snapped back to 1 (middle) after each swipe.
+    // Pages are: 0 = dayOffset-1, 1 = dayOffset, 2 = dayOffset+1
+    @State private var tabSelection: Int = 1
+
     @State private var showFilterSheet = false
     @State private var showAddEntry = false
     @State private var entryToEdit: TimeEntry?
     @State private var entryToDelete: TimeEntry?
     @State private var showDeleteConfirmation = false
-
-    private static func mondayOfWeek(containing date: Date) -> Date {
-        var cal = Calendar.current
-        cal.firstWeekday = 2 // Monday
-        let comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
-        return cal.date(from: comps) ?? Calendar.current.startOfDay(for: date)
-    }
-
-    private var visibleWeekDays: [Date] {
-        (0..<7).compactMap {
-            Calendar.current.date(byAdding: .day, value: $0, to: visibleWeekStart)
-        }
-    }
 
     var body: some View {
         NavigationStack {
@@ -37,6 +29,7 @@ struct TimeEntriesView: View {
                 }
             }
             .navigationTitle("Entries")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbarContent }
             .task { await viewModel.loadEntries() }
             .refreshable { await viewModel.loadEntries() }
@@ -81,32 +74,64 @@ struct TimeEntriesView: View {
                 Image(systemName: viewModel.activeFilters.isEmpty ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
             }
         }
+        
+        // Place the DatePicker in the principal placement (center of nav bar)
+        ToolbarItem(placement: .principal) {
+            DatePicker(
+                "",
+                selection: Binding(
+                    get: {
+                        Calendar.current.date(byAdding: .day, value: dayOffset, to: Calendar.current.startOfDay(for: Date())) ?? Date()
+                    },
+                    set: { newDate in
+                        let today = Calendar.current.startOfDay(for: Date())
+                        let normalizedNewDate = Calendar.current.startOfDay(for: newDate)
+                        let components = Calendar.current.dateComponents([.day], from: today, to: normalizedNewDate)
+                        if let dayDifference = components.day {
+                            dayOffset = dayDifference
+                        }
+                    }
+                ),
+                displayedComponents: .date
+            )
+            .datePickerStyle(.compact)
+            .labelsHidden()
+            .environment(\.locale, Locale.current) // Ensure correct start of week
+        }
     }
 
     // MARK: - Main content
 
     private var mainContent: some View {
-        VStack(spacing: 0) {
-            WeekStripView(
-                weekDays: visibleWeekDays,
-                selectedDay: $selectedDay,
-                daysWithEntries: viewModel.daysWithEntries,
-                onSwipeLeft: {
-                    visibleWeekStart = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: visibleWeekStart) ?? visibleWeekStart
-                },
-                onSwipeRight: {
-                    visibleWeekStart = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: visibleWeekStart) ?? visibleWeekStart
-                }
-            )
+        // Only 3 pages exist at any time: previous, current, next.
+        // After each swipe settles, we reset tabSelection to 1 and shift
+        // dayOffset, so the carousel appears infinite while staying cheap.
+        TabView(selection: $tabSelection) {
+            ForEach(0..<3, id: \.self) { page in
+                let offset = dayOffset + (page - 1)
+                let day = Calendar.current.date(
+                    byAdding: .day,
+                    value: offset,
+                    to: Calendar.current.startOfDay(for: Date())
+                ) ?? Date()
 
-            Divider()
-
-            ScrollView {
-                if let day = selectedDay {
+                ScrollView {
                     dayEntriesSection(for: day)
-                } else {
-                    allEntriesSection
                 }
+                .tag(page)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .onChange(of: tabSelection) { _, newPage in
+            guard newPage != 1 else { return }
+            // Shift the logical day offset by how many pages we moved.
+            dayOffset += newPage - 1
+            // Snap back to the middle page without animation so the
+            // surrounding pages are refreshed invisibly.
+            var tx = Transaction()
+            tx.disablesAnimations = true
+            withTransaction(tx) {
+                tabSelection = 1
             }
         }
     }
@@ -116,7 +141,8 @@ struct TimeEntriesView: View {
     private func dayEntriesSection(for day: Date) -> some View {
         let dayEntries = viewModel.entries(for: day)
         return VStack(alignment: .leading, spacing: 0) {
-            // Section header
+            
+            // Optional: A small summary header for the day
             HStack {
                 Text(dayTitle(day))
                     .font(.subheadline)
@@ -155,41 +181,7 @@ struct TimeEntriesView: View {
                 }
             }
         }
-    }
-
-    // MARK: - All entries (no day selected) — grouped by day
-
-    private var allEntriesSection: some View {
-        LazyVStack(alignment: .leading, pinnedViews: .sectionHeaders) {
-            ForEach(viewModel.entriesByDay, id: \.date) { group in
-                Section {
-                    ForEach(Array(group.entries.enumerated()), id: \.element.id) { index, entry in
-                        EntryRow(entry: entry)
-                            .contentShape(Rectangle())
-                            .onTapGesture { entryToEdit = entry }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    entryToDelete = entry
-                                    showDeleteConfirmation = true
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                        if index < group.entries.count - 1 {
-                            Divider().padding(.leading, 56)
-                        }
-                    }
-                } header: {
-                    Text(dayTitle(group.date))
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.regularMaterial)
-                }
-            }
-        }
+        .padding(.bottom, 40) // Give some breathing room at the bottom of the scroll
     }
 
     // MARK: - Helpers
@@ -198,6 +190,7 @@ struct TimeEntriesView: View {
         let cal = Calendar.current
         if cal.isDateInToday(date) { return "Today" }
         if cal.isDateInYesterday(date) { return "Yesterday" }
+        if cal.isDateInTomorrow(date) { return "Tomorrow" }
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE, MMM d"
         return formatter.string(from: date)
@@ -259,139 +252,6 @@ struct EntryRow: View {
     }
 }
 
-// MARK: - Week Strip View
-
-struct WeekStripView: View {
-    let weekDays: [Date]
-    @Binding var selectedDay: Date?
-    let daysWithEntries: Set<Date>
-    let onSwipeLeft: () -> Void
-    let onSwipeRight: () -> Void
-
-    @GestureState private var dragOffset: CGFloat = 0
-
-    private let cal = Calendar.current
-
-    private var monthYearLabel: String {
-        // Show the month/year of the majority of days in the strip
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        let midWeek = weekDays.count >= 4 ? weekDays[3] : (weekDays.first ?? Date())
-        return formatter.string(from: midWeek)
-    }
-
-    var body: some View {
-        VStack(spacing: 4) {
-            // Month / year header with navigation arrows
-            HStack {
-                Button { onSwipeRight() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 32, height: 32)
-                }
-                Spacer()
-                Text(monthYearLabel)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                Spacer()
-                Button { onSwipeLeft() } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 32, height: 32)
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.top, 6)
-
-            // Day cells
-            HStack(spacing: 0) {
-                ForEach(weekDays, id: \.self) { day in
-                    DayCell(
-                        day: day,
-                        isSelected: selectedDay.map { cal.isDate($0, inSameDayAs: day) } ?? false,
-                        isToday: cal.isDateInToday(day),
-                        hasDot: daysWithEntries.contains(cal.startOfDay(for: day))
-                    )
-                    .frame(maxWidth: .infinity)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        let normalized = cal.startOfDay(for: day)
-                        if let current = selectedDay, cal.isDate(current, inSameDayAs: normalized) {
-                            selectedDay = nil
-                        } else {
-                            selectedDay = normalized
-                        }
-                    }
-                }
-            }
-            .padding(.bottom, 6)
-        }
-        .gesture(
-            DragGesture(minimumDistance: 40, coordinateSpace: .local)
-                .onEnded { value in
-                    if value.translation.width < -40 {
-                        onSwipeLeft()
-                    } else if value.translation.width > 40 {
-                        onSwipeRight()
-                    }
-                }
-        )
-    }
-}
-
-// MARK: - Day Cell
-
-private struct DayCell: View {
-    let day: Date
-    let isSelected: Bool
-    let isToday: Bool
-    let hasDot: Bool
-
-    private static let weekdayFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "EEEEE" // Single letter: M T W T F S S
-        return f
-    }()
-
-    private static let dayFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "d"
-        return f
-    }()
-
-    var body: some View {
-        VStack(spacing: 3) {
-            Text(Self.weekdayFormatter.string(from: day))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-
-            ZStack {
-                if isSelected {
-                    Circle()
-                        .fill(Color.accentColor)
-                        .frame(width: 32, height: 32)
-                } else if isToday {
-                    Circle()
-                        .strokeBorder(Color.accentColor, lineWidth: 1.5)
-                        .frame(width: 32, height: 32)
-                }
-
-                Text(Self.dayFormatter.string(from: day))
-                    .font(.callout.weight(isToday || isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? .white : (isToday ? Color.accentColor : .primary))
-            }
-            .frame(width: 32, height: 32)
-
-            // Dot indicator
-            Circle()
-                .fill(hasDot ? Color.accentColor.opacity(isSelected ? 0 : 0.7) : Color.clear)
-                .frame(width: 4, height: 4)
-        }
-        .padding(.vertical, 4)
-    }
-}
 
 // MARK: - Filter Sheet
 
