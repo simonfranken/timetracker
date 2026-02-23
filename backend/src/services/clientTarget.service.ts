@@ -68,7 +68,7 @@ export interface ClientTargetWithBalance {
 export class ClientTargetService {
   async findAll(userId: string): Promise<ClientTargetWithBalance[]> {
     const targets = await prisma.clientTarget.findMany({
-      where: { userId },
+      where: { userId, client: { deletedAt: null } },
       include: {
         client: { select: { id: true, name: true } },
         corrections: { orderBy: { date: 'asc' } },
@@ -81,7 +81,7 @@ export class ClientTargetService {
 
   async findById(id: string, userId: string) {
     return prisma.clientTarget.findFirst({
-      where: { id, userId },
+      where: { id, userId, client: { deletedAt: null } },
       include: {
         client: { select: { id: true, name: true } },
         corrections: { orderBy: { date: 'asc' } },
@@ -97,8 +97,8 @@ export class ClientTargetService {
       throw new BadRequestError('startDate must be a Monday');
     }
 
-    // Ensure the client belongs to this user
-    const client = await prisma.client.findFirst({ where: { id: data.clientId, userId } });
+    // Ensure the client belongs to this user and is not soft-deleted
+    const client = await prisma.client.findFirst({ where: { id: data.clientId, userId, deletedAt: null } });
     if (!client) {
       throw new NotFoundError('Client not found');
     }
@@ -229,6 +229,8 @@ export class ClientTargetService {
         AND p.client_id = ${target.clientId}
         AND te.start_time >= ${periodStart}
         AND te.start_time <= ${periodEnd}
+        AND te.deleted_at IS NULL
+        AND p.deleted_at IS NULL
       GROUP BY DATE_TRUNC('week', te.start_time AT TIME ZONE 'UTC')
     `);
 
