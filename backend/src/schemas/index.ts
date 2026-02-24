@@ -73,14 +73,20 @@ export const StopTimerSchema = z.object({
   projectId: z.string().uuid().optional(),
 });
 
+const WorkingDayEnum = z.enum(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']);
+
 export const CreateClientTargetSchema = z.object({
   clientId: z.string().uuid(),
-  weeklyHours: z.number().positive().max(168),
+  targetHours: z.number().positive().max(168),
+  periodType: z.enum(['weekly', 'monthly']),
+  workingDays: z.array(WorkingDayEnum).min(1, 'At least one working day is required'),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'startDate must be a date in YYYY-MM-DD format'),
 });
 
 export const UpdateClientTargetSchema = z.object({
-  weeklyHours: z.number().positive().max(168).optional(),
+  targetHours: z.number().positive().max(168).optional(),
+  periodType: z.enum(['weekly', 'monthly']).optional(),
+  workingDays: z.array(WorkingDayEnum).min(1, 'At least one working day is required').optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'startDate must be a date in YYYY-MM-DD format').optional(),
 });
 
