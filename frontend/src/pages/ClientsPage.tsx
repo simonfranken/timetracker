@@ -60,7 +60,8 @@ function ClientTargetPanel({
   // Correction form state
   const [showCorrectionForm, setShowCorrectionForm] = useState(false);
   const [corrDate, setCorrDate] = useState('');
-  const [corrDuration, setCorrDuration] = useState('');
+  const [corrHours, setCorrHours] = useState('');
+  const [corrMins, setCorrMins] = useState('');
   const [corrNegative, setCorrNegative] = useState(false);
   const [corrDesc, setCorrDesc] = useState('');
   const [corrError, setCorrError] = useState<string | null>(null);
@@ -153,28 +154,24 @@ function ClientTargetPanel({
     e.preventDefault();
     setCorrError(null);
     if (!target) return;
-    if (!corrDuration) {
-      setCorrError('Enter a duration');
-      return;
-    }
-    const [hPart, mPart] = corrDuration.split(':').map(Number);
-    const h = isNaN(hPart) ? 0 : hPart;
-    const m = isNaN(mPart) ? 0 : mPart;
+    const h = parseInt(corrHours || '0', 10);
+    const m = parseInt(corrMins || '0', 10);
     if (h === 0 && m === 0) {
       setCorrError('Duration must be at least 1 minute');
       return;
     }
-    const totalHours = (h + m / 60) * (corrNegative ? -1 : 1);
     if (!corrDate) {
       setCorrError('Please select a date');
       return;
     }
+    const totalHours = (h + m / 60) * (corrNegative ? -1 : 1);
     setCorrSaving(true);
     try {
       const input: CreateCorrectionInput = { date: corrDate, hours: totalHours, description: corrDesc || undefined };
       await addCorrection.mutateAsync({ targetId: target.id, input });
       setCorrDate('');
-      setCorrDuration('');
+      setCorrHours('');
+      setCorrMins('');
       setCorrNegative(false);
       setCorrDesc('');
       setShowCorrectionForm(false);
@@ -410,12 +407,24 @@ function ClientTargetPanel({
                       {corrNegative ? '−' : '+'}
                     </button>
                     <input
-                      type="time"
-                      value={corrDuration}
-                      onChange={e => setCorrDuration(e.target.value)}
-                      className="input text-xs py-1 flex-1 min-w-0"
-                      required
+                      type="number"
+                      min={0}
+                      value={corrHours}
+                      onChange={e => setCorrHours(e.target.value)}
+                      className="input text-xs py-1 w-12 min-w-0 text-center"
+                      placeholder="h"
                     />
+                    <span className="text-xs text-gray-400 self-center">h</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={corrMins}
+                      onChange={e => setCorrMins(e.target.value)}
+                      className="input text-xs py-1 w-12 min-w-0 text-center"
+                      placeholder="m"
+                    />
+                    <span className="text-xs text-gray-400 self-center">m</span>
                   </div>
                 </div>
               </div>
