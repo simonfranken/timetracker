@@ -60,8 +60,7 @@ function ClientTargetPanel({
   // Correction form state
   const [showCorrectionForm, setShowCorrectionForm] = useState(false);
   const [corrDate, setCorrDate] = useState('');
-  const [corrHoursInt, setCorrHoursInt] = useState('');
-  const [corrMins, setCorrMins] = useState('');
+  const [corrDuration, setCorrDuration] = useState('');
   const [corrNegative, setCorrNegative] = useState(false);
   const [corrDesc, setCorrDesc] = useState('');
   const [corrError, setCorrError] = useState<string | null>(null);
@@ -154,31 +153,28 @@ function ClientTargetPanel({
     e.preventDefault();
     setCorrError(null);
     if (!target) return;
-    const h = parseInt(corrHoursInt || '0', 10);
-    const m = parseInt(corrMins || '0', 10);
-    if (isNaN(h) || isNaN(m) || h < 0 || m < 0 || m > 59 || (h === 0 && m === 0)) {
-      setCorrError('Enter a valid duration (at least 1 minute)');
+    if (!corrDuration) {
+      setCorrError('Enter a duration');
       return;
     }
-    const totalHours = h + m / 60;
-    if (totalHours > 1000) {
-      setCorrError('Duration cannot exceed 1000 hours');
+    const [hPart, mPart] = corrDuration.split(':').map(Number);
+    const h = isNaN(hPart) ? 0 : hPart;
+    const m = isNaN(mPart) ? 0 : mPart;
+    if (h === 0 && m === 0) {
+      setCorrError('Duration must be at least 1 minute');
       return;
     }
+    const totalHours = (h + m / 60) * (corrNegative ? -1 : 1);
     if (!corrDate) {
       setCorrError('Please select a date');
       return;
     }
     setCorrSaving(true);
     try {
-      const h = parseInt(corrHoursInt || '0', 10);
-      const m = parseInt(corrMins || '0', 10);
-      const hours = (h + m / 60) * (corrNegative ? -1 : 1);
-      const input: CreateCorrectionInput = { date: corrDate, hours, description: corrDesc || undefined };
+      const input: CreateCorrectionInput = { date: corrDate, hours: totalHours, description: corrDesc || undefined };
       await addCorrection.mutateAsync({ targetId: target.id, input });
       setCorrDate('');
-      setCorrHoursInt('');
-      setCorrMins('');
+      setCorrDuration('');
       setCorrNegative(false);
       setCorrDesc('');
       setShowCorrectionForm(false);
@@ -398,13 +394,13 @@ function ClientTargetPanel({
                     required
                   />
                 </div>
-                <div>
+                <div className="flex-1">
                   <label className="block text-xs text-gray-500 mb-0.5">Duration</label>
-                  <div className="flex items-center gap-1">
+                  <div className="flex gap-1">
                     <button
                       type="button"
                       onClick={() => setCorrNegative(v => !v)}
-                      className={`text-xs px-1.5 py-1 rounded border font-mono font-bold transition-colors ${
+                      className={`input text-xs py-1 px-2 font-mono font-bold w-8 shrink-0 text-center transition-colors ${
                         corrNegative
                           ? 'bg-red-50 border-red-300 text-red-600'
                           : 'bg-green-50 border-green-300 text-green-600'
@@ -414,25 +410,11 @@ function ClientTargetPanel({
                       {corrNegative ? '−' : '+'}
                     </button>
                     <input
-                      type="number"
-                      value={corrHoursInt}
-                      onChange={e => setCorrHoursInt(e.target.value)}
-                      className="input text-xs py-1 w-14 text-center"
-                      placeholder="0h"
-                      min="0"
-                      max="999"
-                      step="1"
-                    />
-                    <span className="text-xs text-gray-400">:</span>
-                    <input
-                      type="number"
-                      value={corrMins}
-                      onChange={e => setCorrMins(e.target.value)}
-                      className="input text-xs py-1 w-14 text-center"
-                      placeholder="00m"
-                      min="0"
-                      max="59"
-                      step="1"
+                      type="time"
+                      value={corrDuration}
+                      onChange={e => setCorrDuration(e.target.value)}
+                      className="input text-xs py-1 flex-1 min-w-0"
+                      required
                     />
                   </div>
                 </div>
