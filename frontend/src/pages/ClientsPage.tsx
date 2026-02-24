@@ -61,8 +61,6 @@ function ClientTargetPanel({
   const [showCorrectionForm, setShowCorrectionForm] = useState(false);
   const [corrDate, setCorrDate] = useState('');
   const [corrHours, setCorrHours] = useState('');
-  const [corrMins, setCorrMins] = useState('');
-  const [corrNegative, setCorrNegative] = useState(false);
   const [corrDesc, setCorrDesc] = useState('');
   const [corrError, setCorrError] = useState<string | null>(null);
   const [corrSaving, setCorrSaving] = useState(false);
@@ -154,25 +152,21 @@ function ClientTargetPanel({
     e.preventDefault();
     setCorrError(null);
     if (!target) return;
-    const h = parseInt(corrHours || '0', 10);
-    const m = parseInt(corrMins || '0', 10);
-    if (h === 0 && m === 0) {
-      setCorrError('Duration must be at least 1 minute');
+    const hours = parseFloat(corrHours);
+    if (isNaN(hours) || hours < -1000 || hours > 1000) {
+      setCorrError('Hours must be between -1000 and 1000');
       return;
     }
     if (!corrDate) {
       setCorrError('Please select a date');
       return;
     }
-    const totalHours = (h + m / 60) * (corrNegative ? -1 : 1);
     setCorrSaving(true);
     try {
-      const input: CreateCorrectionInput = { date: corrDate, hours: totalHours, description: corrDesc || undefined };
+      const input: CreateCorrectionInput = { date: corrDate, hours, description: corrDesc || undefined };
       await addCorrection.mutateAsync({ targetId: target.id, input });
       setCorrDate('');
       setCorrHours('');
-      setCorrMins('');
-      setCorrNegative(false);
       setCorrDesc('');
       setShowCorrectionForm(false);
     } catch (err) {
@@ -365,7 +359,7 @@ function ClientTargetPanel({
               </div>
               <div className="flex items-center gap-1.5">
                 <span className={`text-xs font-semibold ${c.hours >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {c.hours >= 0 ? '+' : '−'}{formatDurationHoursMinutes(Math.abs(c.hours) * 3600)}
+                  {c.hours >= 0 ? '+' : ''}{c.hours}h
                 </span>
                 <button
                   onClick={() => handleDeleteCorrection(c.id)}
@@ -391,41 +385,17 @@ function ClientTargetPanel({
                     required
                   />
                 </div>
-                <div className="flex-1">
-                  <label className="block text-xs text-gray-500 mb-0.5">Duration</label>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setCorrNegative(v => !v)}
-                      className={`input text-xs py-1 px-2 font-mono font-bold w-8 shrink-0 text-center transition-colors ${
-                        corrNegative
-                          ? 'bg-red-50 border-red-300 text-red-600'
-                          : 'bg-green-50 border-green-300 text-green-600'
-                      }`}
-                      title="Toggle positive / negative"
-                    >
-                      {corrNegative ? '−' : '+'}
-                    </button>
-                    <input
-                      type="number"
-                      min={0}
-                      value={corrHours}
-                      onChange={e => setCorrHours(e.target.value)}
-                      className="input text-xs py-1 w-12 min-w-0 text-center"
-                      placeholder="h"
-                    />
-                    <span className="text-xs text-gray-400 self-center">h</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={59}
-                      value={corrMins}
-                      onChange={e => setCorrMins(e.target.value)}
-                      className="input text-xs py-1 w-12 min-w-0 text-center"
-                      placeholder="m"
-                    />
-                    <span className="text-xs text-gray-400 self-center">m</span>
-                  </div>
+                <div className="w-24">
+                  <label className="block text-xs text-gray-500 mb-0.5">Hours</label>
+                  <input
+                    type="number"
+                    value={corrHours}
+                    onChange={e => setCorrHours(e.target.value)}
+                    className="input text-xs py-1"
+                    placeholder="+8 / -4"
+                    step="0.5"
+                    required
+                  />
                 </div>
               </div>
               <div>
