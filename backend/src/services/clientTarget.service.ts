@@ -506,8 +506,19 @@ export class ClientTargetService {
         const elapsedWorkingDays = countWorkingDays(effectiveStart, elapsedEnd, workingDays);
         const expectedHours = elapsedWorkingDays * dailyRateHours;
 
+        // Only count corrections up to and including today — future corrections
+        // within the ongoing period must not be counted until those days have elapsed,
+        // otherwise a +8h correction for tomorrow inflates the balance immediately.
+        const correctionHoursToDate = target.corrections.reduce((sum, c) => {
+          const d = c.date.toISOString().split('T')[0];
+          if (cmpDate(d, effectiveStart) >= 0 && cmpDate(d, today) <= 0) {
+            return sum + c.hours;
+          }
+          return sum;
+        }, 0);
+
         balanceSeconds = Math.round(
-          (trackedSeconds + correctionHours * 3600) - expectedHours * 3600,
+          (trackedSeconds + correctionHoursToDate * 3600) - expectedHours * 3600,
         );
 
         extra = {
