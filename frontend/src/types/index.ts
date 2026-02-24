@@ -155,13 +155,19 @@ export interface BalanceCorrection {
   deletedAt: string | null;
 }
 
-export interface WeekBalance {
-  weekStart: string; // YYYY-MM-DD (Monday)
-  weekEnd: string;   // YYYY-MM-DD (Sunday)
+export interface PeriodBalance {
+  periodStart: string;        // YYYY-MM-DD
+  periodEnd: string;          // YYYY-MM-DD
+  targetHours: number;        // pro-rated for first period
   trackedSeconds: number;
-  targetSeconds: number;
   correctionHours: number;
   balanceSeconds: number;
+  isOngoing: boolean;
+  // only present when isOngoing = true
+  dailyRateHours?: number;
+  workingDaysInPeriod?: number;
+  elapsedWorkingDays?: number;
+  expectedHours?: number;
 }
 
 export interface ClientTargetWithBalance {
@@ -169,26 +175,32 @@ export interface ClientTargetWithBalance {
   clientId: string;
   clientName: string;
   userId: string;
-  weeklyHours: number;
-  startDate: string; // YYYY-MM-DD
+  periodType: "weekly" | "monthly";
+  targetHours: number;
+  workingDays: string[];      // e.g. ["MON","WED"]
+  startDate: string;          // YYYY-MM-DD
   createdAt: string;
   updatedAt: string;
   corrections: BalanceCorrection[];
   totalBalanceSeconds: number;
-  currentWeekTrackedSeconds: number;
-  currentWeekTargetSeconds: number;
-  weeks: WeekBalance[];
+  currentPeriodTrackedSeconds: number;
+  currentPeriodTargetSeconds: number;
+  periods: PeriodBalance[];
 }
 
 export interface CreateClientTargetInput {
   clientId: string;
-  weeklyHours: number;
-  startDate: string; // YYYY-MM-DD
+  targetHours: number;
+  periodType: "weekly" | "monthly";
+  workingDays: string[];      // e.g. ["MON","WED","FRI"]
+  startDate: string;          // YYYY-MM-DD
 }
 
 export interface UpdateClientTargetInput {
-  weeklyHours?: number;
-  startDate?: string;
+  targetHours?: number;
+  periodType?: "weekly" | "monthly";
+  workingDays?: string[];
+  startDate?: string;         // YYYY-MM-DD
 }
 
 export interface CreateCorrectionInput {

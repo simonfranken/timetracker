@@ -82,13 +82,17 @@ export interface StopTimerInput {
 
 export interface CreateClientTargetInput {
   clientId: string;
-  weeklyHours: number;
-  startDate: string; // YYYY-MM-DD, always a Monday
+  targetHours: number;
+  periodType: 'weekly' | 'monthly';
+  workingDays: string[]; // e.g. ["MON","WED","FRI"]
+  startDate: string; // YYYY-MM-DD
 }
 
 export interface UpdateClientTargetInput {
-  weeklyHours?: number;
-  startDate?: string; // YYYY-MM-DD, always a Monday
+  targetHours?: number;
+  periodType?: 'weekly' | 'monthly';
+  workingDays?: string[];
+  startDate?: string; // YYYY-MM-DD
 }
 
 export interface CreateCorrectionInput {

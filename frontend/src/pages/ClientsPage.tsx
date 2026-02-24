@@ -14,33 +14,10 @@ import type {
   CreateCorrectionInput,
 } from '@/types';
 
-// Convert a <input type="week"> value like "2026-W07" to the Monday date "2026-02-16"
-function weekInputToMonday(weekValue: string): string {
-  const [yearStr, weekStr] = weekValue.split('-W');
-  const year = parseInt(yearStr, 10);
-  const week = parseInt(weekStr, 10);
-  // ISO week 1 is the week containing the first Thursday of January
-  const jan4 = new Date(Date.UTC(year, 0, 4));
-  const jan4Day = jan4.getUTCDay() || 7; // Mon=1..Sun=7
-  const monday = new Date(jan4);
-  monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1 + (week - 1) * 7);
-  return monday.toISOString().split('T')[0];
-}
-
-// Convert a YYYY-MM-DD Monday to "YYYY-Www" for the week input
-function mondayToWeekInput(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00Z');
-  // ISO week number calculation
-  const jan4 = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
-  const jan4Day = jan4.getUTCDay() || 7;
-  const firstMonday = new Date(jan4);
-  firstMonday.setUTCDate(jan4.getUTCDate() - jan4Day + 1);
-  const diff = date.getTime() - firstMonday.getTime();
-  const week = Math.floor(diff / (7 * 24 * 3600 * 1000)) + 1;
-  // Handle year boundary: if week > 52 we might be in week 1 of next year
-  const year = date.getUTCFullYear();
-  return `${year}-W${week.toString().padStart(2, '0')}`;
-}
+const ALL_DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const;
+const DAY_LABELS: Record<string, string> = {
+  MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat', SUN: 'Sun',
+};
 
 function balanceLabel(seconds: number): { text: string; color: string } {
   if (seconds === 0) return { text: '±0', color: 'text-gray-500' };
@@ -58,7 +35,12 @@ function ClientTargetPanel({
 }: {
   client: Client;
   target: ClientTargetWithBalance | undefined;
-  onCreated: (weeklyHours: number, startDate: string) => Promise<void>;
+  onCreated: (input: {
+    targetHours: number;
+    periodType: 'weekly' | 'monthly';
+    workingDays: string[];
+    startDate: string;
+  }) => Promise<void>;
   onDeleted: () => Promise<void>;
 }) {
   const { addCorrection, deleteCorrection, updateTarget } = useClientTargets();
@@ -69,7 +51,9 @@ function ClientTargetPanel({
 
   // Create/edit form state
   const [formHours, setFormHours] = useState('');
-  const [formWeek, setFormWeek] = useState('');
+  const [formPeriodType, setFormPeriodType] = useState<'weekly' | 'monthly'>('weekly');
+  const [formWorkingDays, setFormWorkingDays] = useState<string[]>(['MON', 'TUE', 'WED', 'THU', 'FRI']);
+  const [formStartDate, setFormStartDate] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [formSaving, setFormSaving] = useState(false);
 
@@ -81,13 +65,13 @@ function ClientTargetPanel({
   const [corrError, setCorrError] = useState<string | null>(null);
   const [corrSaving, setCorrSaving] = useState(false);
 
+  const todayIso = new Date().toISOString().split('T')[0];
+
   const openCreate = () => {
     setFormHours('');
-    const today = new Date();
-    const day = today.getUTCDay() || 7;
-    const monday = new Date(today);
-    monday.setUTCDate(today.getUTCDate() - day + 1);
-    setFormWeek(mondayToWeekInput(monday.toISOString().split('T')[0]));
+    setFormPeriodType('weekly');
+    setFormWorkingDays(['MON', 'TUE', 'WED', 'THU', 'FRI']);
+    setFormStartDate(todayIso);
     setFormError(null);
     setEditing(false);
     setShowForm(true);
@@ -95,11 +79,19 @@ function ClientTargetPanel({
 
   const openEdit = () => {
     if (!target) return;
-    setFormHours(String(target.weeklyHours));
-    setFormWeek(mondayToWeekInput(target.startDate));
+    setFormHours(String(target.targetHours));
+    setFormPeriodType(target.periodType);
+    setFormWorkingDays([...target.workingDays]);
+    setFormStartDate(target.startDate);
     setFormError(null);
     setEditing(true);
     setShowForm(true);
+  };
+
+  const toggleDay = (day: string) => {
+    setFormWorkingDays(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day],
+    );
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -107,20 +99,36 @@ function ClientTargetPanel({
     setFormError(null);
     const hours = parseFloat(formHours);
     if (isNaN(hours) || hours <= 0 || hours > 168) {
-      setFormError('Weekly hours must be between 0 and 168');
+      setFormError(`${formPeriodType === 'weekly' ? 'Weekly' : 'Monthly'} hours must be between 0 and 168`);
       return;
     }
-    if (!formWeek) {
-      setFormError('Please select a start week');
+    if (formWorkingDays.length === 0) {
+      setFormError('Select at least one working day');
       return;
     }
-    const startDate = weekInputToMonday(formWeek);
+    if (!formStartDate) {
+      setFormError('Please select a start date');
+      return;
+    }
     setFormSaving(true);
     try {
       if (editing && target) {
-        await updateTarget.mutateAsync({ id: target.id, input: { weeklyHours: hours, startDate } });
+        await updateTarget.mutateAsync({
+          id: target.id,
+          input: {
+            targetHours: hours,
+            periodType: formPeriodType,
+            workingDays: formWorkingDays,
+            startDate: formStartDate,
+          },
+        });
       } else {
-        await onCreated(hours, startDate);
+        await onCreated({
+          targetHours: hours,
+          periodType: formPeriodType,
+          workingDays: formWorkingDays,
+          startDate: formStartDate,
+        });
       }
       setShowForm(false);
     } catch (err) {
@@ -185,23 +193,46 @@ function ClientTargetPanel({
           className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-medium"
         >
           <Target className="h-3.5 w-3.5" />
-          Set weekly target
+          Set target
         </button>
       </div>
     );
   }
 
   if (showForm) {
+    const hoursLabel = formPeriodType === 'weekly' ? 'Hours/week' : 'Hours/month';
     return (
       <div className="mt-3 pt-3 border-t border-gray-100">
         <p className="text-xs font-medium text-gray-700 mb-2">
-          {editing ? 'Edit target' : 'Set weekly target'}
+          {editing ? 'Edit target' : 'Set target'}
         </p>
         <form onSubmit={handleFormSubmit} className="space-y-2">
           {formError && <p className="text-xs text-red-600">{formError}</p>}
+
+          {/* Period type */}
+          <div>
+            <label className="block text-xs text-gray-500 mb-0.5">Period</label>
+            <div className="flex gap-2">
+              {(['weekly', 'monthly'] as const).map(pt => (
+                <label key={pt} className="flex items-center gap-1 text-xs cursor-pointer">
+                  <input
+                    type="radio"
+                    name="periodType"
+                    value={pt}
+                    checked={formPeriodType === pt}
+                    onChange={() => setFormPeriodType(pt)}
+                    className="accent-primary-600"
+                  />
+                  {pt.charAt(0).toUpperCase() + pt.slice(1)}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Hours + Start Date */}
           <div className="flex gap-2">
             <div className="flex-1">
-              <label className="block text-xs text-gray-500 mb-0.5">Hours/week</label>
+              <label className="block text-xs text-gray-500 mb-0.5">{hoursLabel}</label>
               <input
                 type="number"
                 value={formHours}
@@ -215,16 +246,41 @@ function ClientTargetPanel({
               />
             </div>
             <div className="flex-1">
-              <label className="block text-xs text-gray-500 mb-0.5">Starting week</label>
+              <label className="block text-xs text-gray-500 mb-0.5">Start date</label>
               <input
-                type="week"
-                value={formWeek}
-                onChange={e => setFormWeek(e.target.value)}
+                type="date"
+                value={formStartDate}
+                onChange={e => setFormStartDate(e.target.value)}
                 className="input text-sm py-1"
                 required
               />
             </div>
           </div>
+
+          {/* Working days */}
+          <div>
+            <label className="block text-xs text-gray-500 mb-0.5">Working days</label>
+            <div className="flex gap-1 flex-wrap">
+              {ALL_DAYS.map(day => {
+                const active = formWorkingDays.includes(day);
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => toggleDay(day)}
+                    className={`text-xs px-2 py-0.5 rounded border font-medium transition-colors ${
+                      active
+                        ? 'bg-primary-600 border-primary-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-600 hover:border-primary-400'
+                    }`}
+                  >
+                    {DAY_LABELS[day]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="flex gap-2 justify-end">
             <button
               type="button"
@@ -248,6 +304,7 @@ function ClientTargetPanel({
 
   // Target exists — show summary + expandable details
   const balance = balanceLabel(target!.totalBalanceSeconds);
+  const periodLabel = target!.periodType === 'weekly' ? 'week' : 'month';
 
   return (
     <div className="mt-3 pt-3 border-t border-gray-100">
@@ -256,7 +313,7 @@ function ClientTargetPanel({
         <div className="flex items-center gap-2">
           <Target className="h-3.5 w-3.5 text-gray-400 shrink-0" />
           <span className="text-xs text-gray-600">
-            <span className="font-medium">{target!.weeklyHours}h</span>/week
+            <span className="font-medium">{target!.targetHours}h</span>/{periodLabel}
           </span>
           <span className={`text-xs font-semibold ${balance.color}`}>{balance.text}</span>
         </div>
@@ -531,8 +588,14 @@ export function ClientsPage() {
                 <ClientTargetPanel
                   client={client}
                   target={target}
-                  onCreated={async (weeklyHours, startDate) => {
-                    await createTarget.mutateAsync({ clientId: client.id, weeklyHours, startDate });
+                  onCreated={async ({ targetHours, periodType, workingDays, startDate }) => {
+                    await createTarget.mutateAsync({
+                      clientId: client.id,
+                      targetHours,
+                      periodType,
+                      workingDays,
+                      startDate,
+                    });
                   }}
                   onDeleted={async () => {
                     if (target) await deleteTarget.mutateAsync(target.id);

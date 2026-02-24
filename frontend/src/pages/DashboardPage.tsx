@@ -59,7 +59,7 @@ export function DashboardPage() {
       return total + calculateDuration(entry.startTime, entry.endTime, entry.breakMinutes);
     }, 0) || 0;
 
-  const targetsWithData = targets?.filter(t => t.weeks.length > 0) ?? [];
+  const targetsWithData = targets?.filter(t => t.periods.length > 0) ?? [];
 
   return (
     <div className="space-y-6">
@@ -108,7 +108,7 @@ export function DashboardPage() {
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <Target className="h-5 w-5 text-primary-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Weekly Targets</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Targets</h2>
           </div>
           <div className="space-y-3">
             {targetsWithData.map(target => {
@@ -116,8 +116,9 @@ export function DashboardPage() {
               const absBalance = Math.abs(balance);
               const isOver = balance > 0;
               const isEven = balance === 0;
-              const currentWeekTracked = formatDurationHoursMinutes(target.currentWeekTrackedSeconds);
-              const currentWeekTarget = formatDurationHoursMinutes(target.currentWeekTargetSeconds);
+              const currentPeriodTracked = formatDurationHoursMinutes(target.currentPeriodTrackedSeconds);
+              const currentPeriodTarget = formatDurationHoursMinutes(target.currentPeriodTargetSeconds);
+              const periodLabel = target.periodType === 'weekly' ? 'This week' : 'This month';
 
               return (
                 <div
@@ -127,8 +128,8 @@ export function DashboardPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-900">{target.clientName}</p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      This week: {currentWeekTracked} / {currentWeekTarget}
-                    </p>
+                        {periodLabel}: {currentPeriodTracked} / {currentPeriodTarget}
+                      </p>
                   </div>
                   <div className="text-right">
                     <p
