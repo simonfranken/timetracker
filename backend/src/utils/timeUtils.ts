@@ -19,6 +19,7 @@ export async function hasOverlappingEntries(
   const count = await prisma.timeEntry.count({
     where: {
       userId,
+      deletedAt: null,
       ...(excludeId ? { id: { not: excludeId } } : {}),
       // An entry overlaps when it starts before our end AND ends after our start.
       startTime: { lt: endTime },
