@@ -212,6 +212,8 @@ export interface ClientTargetWithBalance {
   currentPeriodTrackedSeconds: number;
   currentPeriodTargetSeconds: number;
   periods: PeriodBalance[];
+  /** True when an active timer is running for a project belonging to this client. */
+  hasOngoingTimer: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -405,6 +407,32 @@ export class ClientTargetService {
     const overallEnd = periods[periods.length - 1].end;
     const today = new Date().toISOString().split('T')[0];
 
+    // Fetch active timer for this user (if any) and check if it belongs to this client
+    const ongoingTimer = await prisma.ongoingTimer.findUnique({
+      where: { userId: target.userId },
+      include: { project: { select: { clientId: true } } },
+    });
+
+    // Elapsed seconds from the active timer attributed to this client target.
+    // We only count it if the timer has a project assigned and that project
+    // belongs to the same client as this target.
+    let ongoingTimerSeconds = 0;
+    let ongoingTimerPeriodStart: string | null = null;
+
+    if (
+      ongoingTimer &&
+      ongoingTimer.projectId !== null &&
+      ongoingTimer.project?.clientId === target.clientId
+    ) {
+      ongoingTimerSeconds = Math.floor(
+        (Date.now() - ongoingTimer.startTime.getTime()) / 1000,
+      );
+      // Determine which period the timer's start time falls into
+      const timerDateStr = ongoingTimer.startTime.toISOString().split('T')[0];
+      const timerPeriod = getPeriodForDate(timerDateStr, periodType);
+      ongoingTimerPeriodStart = timerPeriod.start;
+    }
+
     // Fetch all time tracked for this client across the full range in one query
     type TrackedRow = { period_start: string; tracked_seconds: bigint };
 
@@ -489,7 +517,13 @@ export class ClientTargetService {
         ? computePeriodTargetHours(period, startDateStr, target.targetHours, periodType)
         : target.targetHours;
 
-      const trackedSeconds = trackedByPeriod.get(period.start) ?? 0;
+      // Add ongoing timer seconds to the period it started in (if it belongs to this client)
+      const timerContribution =
+        ongoingTimerPeriodStart !== null && period.start === ongoingTimerPeriodStart
+          ? ongoingTimerSeconds
+          : 0;
+
+      const trackedSeconds = (trackedByPeriod.get(period.start) ?? 0) + timerContribution;
       const correctionHours = correctionsByPeriod.get(period.start) ?? 0;
 
       const isOngoing = cmpDate(period.start, today) <= 0 && cmpDate(today, period.end) <= 0;
@@ -574,6 +608,7 @@ export class ClientTargetService {
         ? Math.round(currentPeriod.targetHours * 3600)
         : Math.round(target.targetHours * 3600),
       periods: periodBalances,
+      hasOngoingTimer: ongoingTimerSeconds > 0,
     };
   }
 
@@ -594,6 +629,7 @@ export class ClientTargetService {
       currentPeriodTrackedSeconds: 0,
       currentPeriodTargetSeconds: Math.round(target.targetHours * 3600),
       periods: [],
+      hasOngoingTimer: false,
     };
   }
 }

@@ -316,6 +316,12 @@ function ClientTargetPanel({
             <span className="font-medium">{target!.targetHours}h</span>/{periodLabel}
           </span>
           <span className={`text-xs font-semibold ${balance.color}`}>{balance.text}</span>
+          {target!.hasOngoingTimer && (
+            <span
+              className="inline-block h-2 w-2 rounded-full bg-green-500 animate-pulse"
+              title="Timer running — balance updates every 30 s"
+            />
+          )}
         </div>
         <div className="flex items-center gap-1">
           <button

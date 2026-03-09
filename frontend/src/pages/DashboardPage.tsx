@@ -132,19 +132,27 @@ export function DashboardPage() {
                       </p>
                   </div>
                   <div className="text-right">
-                    <p
-                      className={`text-sm font-bold ${
-                        isEven
-                          ? 'text-gray-500'
-                          : isOver
-                          ? 'text-green-600'
-                          : 'text-red-600'
-                      }`}
-                    >
-                      {isEven
-                        ? '±0'
-                        : (isOver ? '+' : '−') + formatDurationHoursMinutes(absBalance)}
-                    </p>
+                    <div className="flex items-center justify-end gap-1.5">
+                      {target.hasOngoingTimer && (
+                        <span
+                          className="inline-block h-2 w-2 rounded-full bg-green-500 animate-pulse"
+                          title="Timer running — balance updates every 30 s"
+                        />
+                      )}
+                      <p
+                        className={`text-sm font-bold ${
+                          isEven
+                            ? 'text-gray-500'
+                            : isOver
+                            ? 'text-green-600'
+                            : 'text-red-600'
+                        }`}
+                      >
+                        {isEven
+                          ? '±0'
+                          : (isOver ? '+' : '−') + formatDurationHoursMinutes(absBalance)}
+                      </p>
+                    </div>
                     <p className="text-xs text-gray-400">running balance</p>
                   </div>
                 </div>

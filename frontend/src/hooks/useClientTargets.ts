@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientTargetsApi } from '@/api/clientTargets';
+import { useTimer } from '@/contexts/TimerContext';
 import type {
   CreateClientTargetInput,
   UpdateClientTargetInput,
@@ -8,10 +9,13 @@ import type {
 
 export function useClientTargets() {
   const queryClient = useQueryClient();
+  const { ongoingTimer } = useTimer();
 
   const { data: targets, isLoading, error } = useQuery({
     queryKey: ['clientTargets'],
     queryFn: clientTargetsApi.getAll,
+    // Poll every 30 s while a timer is running so the balance stays current
+    refetchInterval: ongoingTimer ? 30_000 : false,
   });
 
   const createTarget = useMutation({

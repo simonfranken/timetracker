@@ -186,6 +186,8 @@ export interface ClientTargetWithBalance {
   currentPeriodTrackedSeconds: number;
   currentPeriodTargetSeconds: number;
   periods: PeriodBalance[];
+  /** True when an active timer for a project belonging to this client is running. */
+  hasOngoingTimer: boolean;
 }
 
 export interface CreateClientTargetInput {
