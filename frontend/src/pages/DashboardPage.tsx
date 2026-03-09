@@ -145,7 +145,7 @@ export function DashboardPage() {
                     <div className="flex items-center justify-end gap-1.5">
                       {target.hasOngoingTimer && (
                         <span
-                          className="inline-block h-2 w-2 rounded-full bg-green-500 animate-pulse"
+                          className="inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse"
                           title="Timer running — balance updates every 30 s"
                         />
                       )}

@@ -24,13 +24,13 @@ export function StatCard({ icon: Icon, label, value, color, indicator }: StatCar
         <div className="ml-4 flex-1">
           <p className="text-sm font-medium text-gray-600">{label}</p>
           <div className="flex items-center gap-2">
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
             {indicator && (
               <span
-                className="inline-block h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse"
+                className="inline-block h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse"
                 title="Timer running"
               />
             )}
+            <p className="text-2xl font-bold text-gray-900">{value}</p>
           </div>
         </div>
       </div>
