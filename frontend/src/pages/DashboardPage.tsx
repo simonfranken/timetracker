@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Clock, Calendar, Briefcase, TrendingUp, Target, Edit2, Trash2 } from "lucide-react";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
 import { useClientTargets } from "@/hooks/useClientTargets";
+import { useTimer } from "@/contexts/TimerContext";
 import { ProjectColorDot } from "@/components/ProjectColorDot";
 import { StatCard } from "@/components/StatCard";
 import { TimeEntryFormModal } from "@/components/TimeEntryFormModal";
@@ -30,6 +31,7 @@ export function DashboardPage() {
   });
 
   const { targets } = useClientTargets();
+  const { ongoingTimer, elapsedSeconds } = useTimer();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
@@ -54,10 +56,17 @@ export function DashboardPage() {
     }
   };
 
-  const totalTodaySeconds =
+  const completedTodaySeconds =
     todayEntries?.entries.reduce((total, entry) => {
       return total + calculateDuration(entry.startTime, entry.endTime, entry.breakMinutes);
-    }, 0) || 0;
+    }, 0) ?? 0;
+
+  // Only add the running timer if it started today (not a timer left running from yesterday)
+  const timerStartedToday =
+    ongoingTimer !== null &&
+    new Date(ongoingTimer.startTime) >= startOfDay(today);
+
+  const totalTodaySeconds = completedTodaySeconds + (timerStartedToday ? elapsedSeconds : 0);
 
   const targetsWithData = targets?.filter(t => t.periods.length > 0) ?? [];
 
@@ -78,6 +87,7 @@ export function DashboardPage() {
           label="Today"
           value={formatDurationHoursMinutes(totalTodaySeconds)}
           color="blue"
+          indicator={timerStartedToday}
         />
         <StatCard
           icon={Calendar}
