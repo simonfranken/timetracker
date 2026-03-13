@@ -147,7 +147,7 @@ export function TimerWidget() {
 
   if (isLoading) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-4 shadow-lg">
+      <div className="bg-white border-t border-gray-200 py-4 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
         </div>
@@ -156,7 +156,7 @@ export function TimerWidget() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-4 shadow-lg z-50">
+    <div className="bg-white border-t border-gray-200 py-4 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap sm:flex-nowrap items-center gap-2 sm:justify-between">
         {ongoingTimer ? (
           <>
