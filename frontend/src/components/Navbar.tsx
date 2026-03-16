@@ -8,6 +8,7 @@ import {
   LogOut,
   ChevronDown,
   Settings,
+  Key,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useRef, useEffect } from "react";
@@ -40,6 +41,7 @@ export function Navbar() {
   const managementItems = [
     { to: "/clients", label: "Clients", icon: Briefcase },
     { to: "/projects", label: "Projects", icon: FolderOpen },
+    { to: "/api-keys", label: "API Keys", icon: Key },
   ];
 
   return (

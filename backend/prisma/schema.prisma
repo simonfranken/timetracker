@@ -20,6 +20,7 @@ model User {
   timeEntries   TimeEntry[]
   ongoingTimer  OngoingTimer?
   clientTargets ClientTarget[]
+  apiKeys       ApiKey[]
 
   @@map("users")
 }
@@ -150,4 +151,19 @@ model Session {
   expiresAt DateTime @map("expires_at")
 
   @@map("sessions")
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  name       String    @db.VarChar(255)
+  keyHash    String    @unique @map("key_hash") @db.VarChar(64) // SHA-256 hex
+  prefix     String    @db.VarChar(16) // first chars of raw key for display
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  userId String @map("user_id") @db.VarChar(255)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("api_keys")
 }
