@@ -210,3 +210,19 @@ export interface CreateCorrectionInput {
   hours: number;
   description?: string;
 }
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  prefix: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export interface CreatedApiKey extends ApiKey {
+  rawKey: string; // returned only on creation
+}
+
+export interface CreateApiKeyInput {
+  name: string;
+}

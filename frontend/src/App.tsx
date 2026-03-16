@@ -10,6 +10,7 @@ import { TimeEntriesPage } from "./pages/TimeEntriesPage";
 import { ClientsPage } from "./pages/ClientsPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { StatisticsPage } from "./pages/StatisticsPage";
+import { ApiKeysPage } from "./pages/ApiKeysPage";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route path="clients" element={<ClientsPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="statistics" element={<StatisticsPage />} />
+          <Route path="api-keys" element={<ApiKeysPage />} />
         </Route>
       </Routes>
     </AuthProvider>

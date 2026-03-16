@@ -13,6 +13,8 @@ import projectRoutes from "./routes/project.routes";
 import timeEntryRoutes from "./routes/timeEntry.routes";
 import timerRoutes from "./routes/timer.routes";
 import clientTargetRoutes from "./routes/clientTarget.routes";
+import apiKeyRoutes from "./routes/apiKey.routes";
+import mcpRoutes from "./routes/mcp.routes";
 
 async function main() {
   // Validate configuration
@@ -70,6 +72,8 @@ async function main() {
   app.use("/time-entries", timeEntryRoutes);
   app.use("/timer", timerRoutes);
   app.use("/client-targets", clientTargetRoutes);
+  app.use("/api-keys", apiKeyRoutes);
+  app.use("/mcp", mcpRoutes);
 
   // Error handling
   app.use(notFoundHandler);

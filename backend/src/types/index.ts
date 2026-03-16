@@ -31,7 +31,7 @@ export interface CreateProjectInput {
 export interface UpdateProjectInput {
   name?: string;
   description?: string;
-  color?: string;
+  color?: string | null;
   clientId?: string;
 }
 

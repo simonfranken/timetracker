@@ -95,3 +95,7 @@ export const CreateCorrectionSchema = z.object({
   hours: z.number().min(-1000).max(1000),
   description: z.string().max(255).optional(),
 });
+
+export const CreateApiKeySchema = z.object({
+  name: z.string().min(1).max(255),
+});
