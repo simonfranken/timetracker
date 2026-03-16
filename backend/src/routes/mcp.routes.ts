@@ -139,15 +139,8 @@ function buildMcpServer(user: AuthenticatedUser): McpServer {
         clientId: z.string().uuid().optional().describe('Move project to a different client'),
       },
     },
-    async (args) => {
-      const { id, ...rest } = args as {
-        id: string;
-        name?: string;
-        description?: string;
-        color?: string | null;
-        clientId?: string;
-      };
-      const project = await projectService.update(id, userId, rest as import('../types').UpdateProjectInput);
+    async ({ id, name, description, color, clientId }) => {
+      const project = await projectService.update(id, userId, { name, description, color, clientId });
       return { content: [{ type: 'text', text: JSON.stringify(project, null, 2) }] };
     }
   );

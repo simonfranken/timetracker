@@ -49,8 +49,8 @@ export function ApiKeysPage() {
     try {
       await deleteApiKey.mutateAsync(id);
       setRevokeConfirmId(null);
-    } catch (err) {
-      // error is surfaced inline via mutation state
+    } catch (_err) {
+      // error rendered below the table row via deleteApiKey.error
     }
   }
 
@@ -78,6 +78,14 @@ export function ApiKeysPage() {
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           {error instanceof Error ? error.message : "Failed to load API keys"}
+        </div>
+      )}
+
+      {deleteApiKey.isError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          {deleteApiKey.error instanceof Error
+            ? deleteApiKey.error.message
+            : "Failed to revoke API key"}
         </div>
       )}
 

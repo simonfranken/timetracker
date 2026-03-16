@@ -1,6 +1,3 @@
--- AlterTable
-ALTER TABLE "client_targets" ALTER COLUMN "working_days" DROP DEFAULT;
-
 -- CreateTable
 CREATE TABLE "api_keys" (
     "id" TEXT NOT NULL,
