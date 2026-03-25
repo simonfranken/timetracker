@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REGISTRY="git.simon-franken.de"
-CHART_DIR="timetracker-chart"
+CHART_DIR="helm"
 
 # Load .env file if present (values do not override existing env variables)
 if [[ -f ".env" ]]; then
