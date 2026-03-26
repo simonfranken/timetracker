@@ -49,6 +49,30 @@ This document describes the structure, conventions, and commands for the `vibe_c
 ### After Making Changes
 **Always update documentation.** See [Documentation Maintenance](#documentation-maintenance).
 
+## Feature Development Workflow
+
+**For new features, AI agents MUST follow this process before writing any code.**
+
+### Phase 1: Requirements Discovery
+1. Ask clarifying questions about the feature request
+2. Identify edge cases, constraints, and acceptance criteria
+3. Confirm understanding with the programmer
+4. Iterate until requirements are clear
+
+### Phase 2: Feature Plan
+1. Create `docs/features/{feature-name}.md` with the feature plan
+2. Include: overview, requirements, technical approach, file changes, edge cases, testing
+3. Present plan for review
+4. Iterate until approved by the programmer
+
+### Phase 3: Implementation
+1. Use the approved plan as the single source of truth
+2. Implement step by step following the plan
+3. Update the plan if implementation differs
+4. Update documentation after completion
+
+**See the `feature-planning` skill for detailed workflow and templates.**
+
 ## Documentation Maintenance
 
 **Every code change requires a documentation review.** When you modify the codebase, check whether documentation needs updating.
