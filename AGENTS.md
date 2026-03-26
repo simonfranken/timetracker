@@ -1,6 +1,6 @@
 # AGENTS.md — Codebase Guide for AI Coding Agents
 
-This document describes the structure, conventions, and commands for the `vibe_coding_timetracker` monorepo. Read it in full before making changes.
+This document describes the structure, conventions, and commands for the `vibe_coding_timetracker` monorepo. **Read it in full before making changes.**
 
 ## Repository Structure
 
@@ -18,16 +18,78 @@ This document describes the structure, conventions, and commands for the `vibe_c
 ├── backend/           # Express REST API (TypeScript + Prisma + PostgreSQL)
 │   └── src/
 │       ├── auth/      # OIDC + JWT logic
+│       ├── config/    # Configuration constants
 │       ├── errors/    # AppError subclasses
 │       ├── middleware/# Express middlewares
 │       ├── prisma/    # Prisma client singleton
 │       ├── routes/    # Express routers (xxx.routes.ts)
 │       ├── schemas/   # Zod validation schemas
-│       └── services/  # Business logic classes (xxx.service.ts)
+│       ├── services/  # Business logic classes (xxx.service.ts)
+│       ├── types/     # TypeScript interfaces
+│       └── utils/     # Utility functions
 ├── ios/               # Native iOS app (Swift/Xcode)
-├── timetracker-chart/ # Helm chart for Kubernetes deployment
+├── helm/              # Helm chart for Kubernetes deployment
 └── docker-compose.yml
 ```
+
+## AI Agent Workflow
+
+### Before Making Changes
+1. Read this file completely
+2. Read `project.md` for feature requirements
+3. Read `README.md` for setup instructions
+4. Understand the specific task or feature request
+
+### During Development
+1. Follow all code conventions in this document
+2. Write clean, maintainable code
+3. Add inline comments only when necessary for clarity
+4. Run linting before completing: `npm run lint`
+
+### After Making Changes
+**Always update documentation.** See [Documentation Maintenance](#documentation-maintenance).
+
+## Documentation Maintenance
+
+**Every code change requires a documentation review.** When you modify the codebase, check whether documentation needs updating.
+
+### Documentation Files and Their Purposes
+
+| File | Purpose | Update When |
+|------|---------|-------------|
+| `AGENTS.md` | Code conventions, commands, architecture patterns | Changing conventions, adding new patterns, modifying architecture |
+| `README.md` | Setup instructions, API reference, features list | Adding endpoints, changing environment variables, adding features |
+| `project.md` | Requirements, data model, functional specifications | Modifying business logic, adding entities, changing validation rules |
+
+### Update Rules
+
+#### Update `AGENTS.md` When:
+- Adding a new coding pattern or convention
+- Changing the project structure (new directories, reorganization)
+- Adding or modifying build/lint/test commands
+- Introducing a new architectural pattern
+- Changing state management or error handling approaches
+
+#### Update `README.md` When:
+- Adding, removing, or modifying API endpoints
+- Changing environment variables or configuration
+- Adding new features visible to users
+- Modifying setup or installation steps
+- Changing the technology stack
+
+#### Update `project.md` When:
+- Adding or modifying business requirements
+- Changing the data model or relationships
+- Adding new validation rules
+- Modifying functional specifications
+- Updating security or non-functional requirements
+
+### Documentation Format Rules
+- Use Markdown formatting
+- Keep entries concise and actionable
+- Match the existing tone and style
+- Use code blocks for commands and code examples
+- Maintain alphabetical or logical ordering in lists
 
 ## Build, Lint, and Dev Commands
 

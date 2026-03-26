@@ -40,16 +40,22 @@ A multi-user web application for tracking time spent working on projects. Users 
 | **Project**      | A project belonging to a client               | User, belongs to one Client                        |
 | **TimeEntry**    | A completed time tracking record              | User (explicit), belongs to one Project            |
 | **OngoingTimer** | An active timer while tracking is in progress | User (explicit), belongs to one Project (optional) |
+| **ClientTarget** | Hourly target for a client per period         | User, belongs to one Client                        |
+| **BalanceCorrection** | Manual hour adjustment for a target       | Belongs to one ClientTarget                        |
+| **ApiKey**       | API key for external tool access              | User                                               |
 
 ### Relationships
 
 ```
 User
   ├── Client (one-to-many)
-  │     └── Project (one-to-many)
-  │           └── TimeEntry (one-to-many, explicit user reference)
+  │     ├── Project (one-to-many)
+  │     │     └── TimeEntry (one-to-many, explicit user reference)
+  │     └── ClientTarget (one-to-one per client)
+  │           └── BalanceCorrection (one-to-many)
   │
-  └── OngoingTimer (zero-or-one, explicit user reference)
+  ├── OngoingTimer (zero-or-one, explicit user reference)
+  └── ApiKey (one-to-many)
 ```
 
 **Important**: Both `TimeEntry` and `OngoingTimer` have explicit references to the user who created them. This is distinct from the project's ownership and is required for future extensibility (see Future Extensibility section).
@@ -127,7 +133,69 @@ User
   - Start time
   - End time
   - Project
+- Optional fields:
+  - Break minutes (deducted from total duration)
+  - Description (notes about the work)
 - The entry is validated against overlap rules before saving
+
+---
+
+### 6. Statistics
+
+- User can view aggregated time tracking statistics
+- Filters available:
+  - Date range (start/end)
+  - Client
+  - Project
+- Statistics display:
+  - Total working time
+  - Entry count
+  - Breakdown by project (with color indicators)
+  - Breakdown by client
+
+---
+
+### 7. Client Targets
+
+- User can set hourly targets per client
+- Target configuration:
+  - Target hours per period
+  - Period type (weekly or monthly)
+  - Working days (e.g., MON-FRI)
+  - Start date
+- Balance tracking:
+  - Shows current balance vs target
+  - Supports manual corrections (e.g., holidays, overtime carry-over)
+- Only one target per client allowed
+
+---
+
+### 8. API Keys
+
+- User can generate API keys for external tool access
+- API key properties:
+  - Name (for identification)
+  - Prefix (first characters shown for identification)
+  - Last used timestamp
+- Security:
+  - Raw key shown only once at creation
+  - Key is hashed (SHA-256) before storage
+  - Keys can be revoked (deleted)
+
+---
+
+### 9. MCP Integration
+
+- Model Context Protocol endpoint for AI agent access
+- Stateless operation (no session persistence)
+- Tools exposed:
+  - Client CRUD operations
+  - Project CRUD operations
+  - Time entry CRUD operations
+  - Timer start/stop/cancel
+  - Client target management
+  - Statistics queries
+- Authentication via API keys
 
 ---
 
@@ -165,7 +233,28 @@ User
 - `POST /api/timer/start` — Start timer (creates OngoingTimer)
 - `PUT /api/timer` — Update ongoing timer (e.g., set project)
 - `POST /api/timer/stop` — Stop timer (converts to TimeEntry)
+- `POST /api/timer/cancel` — Cancel timer without saving
 - `GET /api/timer` — Get current ongoing timer (if any)
+
+### Client Targets
+
+- `GET /api/client-targets` — List targets with computed balance
+- `POST /api/client-targets` — Create a target
+- `PUT /api/client-targets/{id}` — Update a target
+- `DELETE /api/client-targets/{id}` — Delete a target
+- `POST /api/client-targets/{id}/corrections` — Add a correction
+- `DELETE /api/client-targets/{id}/corrections/{correctionId}` — Delete a correction
+
+### API Keys
+
+- `GET /api/api-keys` — List user's API keys
+- `POST /api/api-keys` — Create a new API key
+- `DELETE /api/api-keys/{id}` — Revoke an API key
+
+### MCP (Model Context Protocol)
+
+- `GET /mcp` — SSE stream for server-initiated messages
+- `POST /mcp` — JSON-RPC requests (tool invocations)
 
 ---
 
@@ -183,6 +272,9 @@ User
 - **Dashboard**: Overview with active timer widget and recent entries
 - **Time Entries**: List/calendar view of all entries with filters (date range, client, project)
 - **Clients & Projects**: Management interface for clients and projects
+- **Statistics**: Aggregated time data with filters and breakdowns
+- **API Keys**: Create and manage API keys for external access
+- **Client Targets**: Set and monitor hourly targets per client
 
 ---
 

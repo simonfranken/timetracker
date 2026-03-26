@@ -10,6 +10,10 @@ A multi-user web application for tracking time spent working on projects. Users 
 - **Time Tracking** - Start/stop timer with live elapsed time display
 - **Manual Entry** - Add time entries manually for past work
 - **Validation** - Overlap prevention and end-time validation
+- **Statistics** - View aggregated time tracking data by project and client
+- **Client Targets** - Set hourly targets per client with weekly/monthly periods
+- **API Keys** - Generate API keys for external tools and AI agents
+- **MCP Integration** - Model Context Protocol endpoint for AI agent access
 - **Responsive UI** - Works on desktop and mobile
 
 ## Architecture
@@ -125,6 +129,27 @@ APP_URL="http://localhost:5173"
 - `POST /api/timer/start` - Start timer
 - `PUT /api/timer` - Update timer (set project)
 - `POST /api/timer/stop` - Stop timer (creates entry)
+- `POST /api/timer/cancel` - Cancel timer without saving
+
+### Client Targets
+
+- `GET /api/client-targets` - List targets with balance
+- `POST /api/client-targets` - Create target
+- `PUT /api/client-targets/:id` - Update target
+- `DELETE /api/client-targets/:id` - Delete target
+- `POST /api/client-targets/:id/corrections` - Add correction
+- `DELETE /api/client-targets/:id/corrections/:correctionId` - Delete correction
+
+### API Keys
+
+- `GET /api/api-keys` - List API keys
+- `POST /api/api-keys` - Create API key
+- `DELETE /api/api-keys/:id` - Revoke API key
+
+### MCP (Model Context Protocol)
+
+- `GET /mcp` - SSE stream for server-initiated messages
+- `POST /mcp` - JSON-RPC requests (tool invocations)
 
 ## Data Model
 
