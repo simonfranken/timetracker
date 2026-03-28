@@ -7,11 +7,12 @@ ENV VITE_API_URL=${VITE_API_URL}
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 
 COPY . .
 RUN npm run build
 
+# Runtime stage
 FROM nginxinc/nginx-unprivileged:alpine-slim
 
 COPY --from=builder /app/dist /usr/share/nginx/html
