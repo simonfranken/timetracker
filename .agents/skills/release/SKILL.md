@@ -25,7 +25,12 @@ This skill provides a structured workflow for creating new releases in the TimeT
    - Get merged PRs since last release
    - Format into structured notes
 
-4. Release Creation
+4. Helm Chart Update
+   - Update helm/Chart.yaml (version and appVersion)
+   - Update helm/values.yaml (image tags)
+   - Commit and push changes
+
+5. Release Creation
    - Create git tag
    - Push tag to remote
    - Create GitHub release with notes
@@ -38,7 +43,8 @@ When user requests a new release, the agent should:
 2. Run pre-flight checks
 3. Guide through version selection
 4. Generate release notes
-5. Create and push the release
+5. Update Helm chart
+6. Create and push the release
 
 ## Phase 1: Pre-flight Checks
 
@@ -217,6 +223,48 @@ This is the first release of TimeTracker!
 **Full Commit History**: {commit_url}
 ```
 
+## Phase 3.5: Helm Chart Update
+
+**Goal:** Update the Helm chart to match the new release version. This ensures the chart deploys the correct image versions.
+
+### Files to Update
+
+**`helm/Chart.yaml`**
+- Update `version` to match the new release version (e.g., `0.1.0`)
+- Update `appVersion` to match the new release version (e.g., `"0.1.0"`)
+
+```yaml
+version: 0.1.0
+appVersion: "0.1.0"
+```
+
+**`helm/values.yaml`**
+- Update `backend.image.tag` to the new version (e.g., `0.1.0`)
+- Update `frontend.image.tag` to the new version (e.g., `0.1.0`)
+
+```yaml
+backend:
+  image:
+    tag: 0.1.0
+
+frontend:
+  image:
+    tag: 0.1.0
+```
+
+### Commit and Push
+
+```bash
+git add helm/Chart.yaml helm/values.yaml
+git commit -m "chore: update helm chart for v{version} release"
+git push origin main
+```
+
+**Why this is needed:**
+- The GitHub Actions workflow builds images tagged with the semantic version (e.g., `0.1.0`) when a tag is pushed
+- The Helm chart must reference these image tags to deploy the correct version
+- Committing before tagging ensures the helm chart update is included in the release
+
 ## Phase 4: Release Creation
 
 **Goal:** Create the git tag, push it, and create a GitHub release.
@@ -281,8 +329,14 @@ git ls-remote --tags origin | grep "v{version}"
 - Check working directory: `git status --porcelain`
 - Get latest tag: `git describe --tags --abbrev=0`
 - List tags: `git tag -l`
+- Update helm chart: `git add helm/Chart.yaml helm/values.yaml && git commit -m "chore: update helm chart for v{version} release"`
 - Create tag: `git tag -a "v{version}" -m "Release v{version}"`
 - Push tag: `git push origin "v{version}"`
+
+### Helm Chart Files
+
+- `helm/Chart.yaml` — Contains `version` and `appVersion` fields
+- `helm/values.yaml` — Contains `backend.image.tag` and `frontend.image.tag`
 
 ### GitHub Tools
 
@@ -357,9 +411,11 @@ Shall I create the release?"
 User: "yes"
 
 Agent: "Creating release v1.3.0..."
-[Creates tag, pushes, creates GitHub release]
+[Updates helm chart, commits, creates tag, pushes, creates GitHub release]
 
-Agent: "✓ Created tag v1.3.0
+Agent: "✓ Updated helm chart for v1.3.0
+✓ Committed and pushed changes
+✓ Created tag v1.3.0
 ✓ Pushed tag to origin
 ✓ Created GitHub release v1.3.0
 
