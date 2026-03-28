@@ -1,3 +1,8 @@
+---
+name: release
+description: Automated workflow for creating releases using semantic versioning
+---
+
 # Release Agent Skill
 
 This skill provides a structured workflow for creating new releases in the TimeTracker project using semantic versioning and GitHub Releases.
