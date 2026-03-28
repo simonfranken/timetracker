@@ -1,3 +1,8 @@
+---
+name: feature-planning
+description: Structured workflow for planning and implementing features via GitHub Issues
+---
+
 # Feature Planning Skill
 
 This skill provides a structured workflow for implementing new features in the TimeTracker project using GitHub Issues as the source of truth.
@@ -279,9 +284,9 @@ When PR is merged:
 
 ### GitHub Tools Available
 
-- `github_create_issue` - Create new issue for feature planning
-- `github_issue_update` - Update issue body/labels
-- `github_issue_comment` - Add comments for Q&A
+- `github_issue_write` (method: "create") — Create new issue for feature planning
+- `github_issue_write` (method: "update") — Update issue body/labels
+- `github_add_issue_comment` — Add comments for Q&A
 - `github_create_branch` - Create feature branch
 - `github_create_pull_request` - Create PR linking to issue
 
