@@ -89,6 +89,23 @@ This document describes the structure, conventions, and commands for the `vibe_c
 
 **See the `feature-planning` skill for detailed workflow.**
 
+## Available Agent Skills
+
+Agent skills are stored in `.agents/skills/` and provide specialized workflows for specific tasks.
+
+### Feature Planning (`feature-planning`)
+Structured workflow for planning and implementing features via GitHub Issues.
+
+### Release (`release`)
+Automated workflow for creating releases using semantic versioning:
+- Verify on main branch with clean working directory
+- Calculate next version (patch/minor/major)
+- Generate release notes from commits/PRs since last release
+- Create git tag and push to remote
+- Create GitHub release with notes
+
+**See `.agents/skills/release/SKILL.md` for detailed workflow.**
+
 ## Documentation Maintenance
 
 **Every code change requires a documentation review.** When you modify the codebase, check whether documentation needs updating.
