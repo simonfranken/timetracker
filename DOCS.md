@@ -8,7 +8,7 @@
 | `README.md` | Setup instructions, API reference, features list | New endpoints, config changes, new features, technology stack changes |
 | `project.md` | Requirements, data model, functional specifications | Business logic changes, new entities, validation rules, UI requirements |
 | `DOCS.md` | Documentation standards and index | Documentation process changes, new documentation files |
-| `docs/features/*.md` | Feature implementation plans | Created during feature development, updated if implementation differs |
+| GitHub Issues | Feature implementation plans | Created during feature planning, plan stored in issue body |
 
 ## AI Agent Skills
 

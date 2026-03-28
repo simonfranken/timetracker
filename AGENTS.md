@@ -51,27 +51,43 @@ This document describes the structure, conventions, and commands for the `vibe_c
 
 ## Feature Development Workflow
 
-**For new features, AI agents MUST follow this process before writing any code.**
+**For new features, AI agents use GitHub Issues as the single source of truth.**
+
+### Workflow Overview
+
+```
+1. Feature Request → Agent asks: "Create GitHub issue?"
+2. User confirms → Agent creates GitHub issue
+3. Discussion in Issue Comments (Requirements Discovery)
+4. Agent writes Plan in Issue Body
+5. User approves via comment (approved/lgtm/go ahead)
+6. Agent AUTOMATICALLY creates branch, implements, and creates PR
+```
 
 ### Phase 1: Requirements Discovery
-1. Ask clarifying questions about the feature request
-2. Identify edge cases, constraints, and acceptance criteria
-3. Confirm understanding with the programmer
-4. Iterate until requirements are clear
+1. Ask user: "Should I create a GitHub issue to plan this feature?"
+2. Wait for confirmation
+3. Create issue with `planning` label
+4. Ask clarifying questions via issue comments
+5. Iterate until requirements are clear
 
 ### Phase 2: Feature Plan
-1. Create `docs/features/{feature-name}.md` with the feature plan
-2. Include: overview, requirements, technical approach, file changes, edge cases, testing
-3. Present plan for review
-4. Iterate until approved by the programmer
+1. Write detailed plan in issue body using template
+2. Include: overview, requirements, technical approach, file changes, edge cases
+3. Ask for review via comment
+4. Iterate until approved
 
-### Phase 3: Implementation
-1. Use the approved plan as the single source of truth
-2. Implement step by step following the plan
-3. Update the plan if implementation differs
-4. Update documentation after completion
+### Phase 3: Approval
+- User comments: `approved`, `lgtm`, `go ahead`, or `👍`
+- Agent proceeds to implementation
 
-**See the `feature-planning` skill for detailed workflow and templates.**
+### Phase 4: Implementation (Automatic)
+1. Create feature branch: `feature/{issue-number}-{name}`
+2. Implement feature following the plan in issue body
+3. Create PR with link to issue
+4. Post PR link as issue comment
+
+**See the `feature-planning` skill for detailed workflow.**
 
 ## Documentation Maintenance
 

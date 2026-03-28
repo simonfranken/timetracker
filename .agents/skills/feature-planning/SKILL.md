@@ -1,25 +1,44 @@
 # Feature Planning Skill
 
-This skill provides a structured workflow for implementing new features in the TimeTracker project. Use this skill when the user requests a new feature or significant functionality change.
+This skill provides a structured workflow for implementing new features in the TimeTracker project using GitHub Issues as the source of truth.
 
 ## Workflow Overview
 
 ```
-1. Requirements Discovery (iterative)
-   └── Clarify edge cases, acceptance criteria, constraints
+1. Requirements Discovery (in GitHub Issue)
+   - Agent creates issue → Clarify via comments → Iterate until clear
 
-2. Feature Plan Creation
-   └── docs/features/{feature-name}.md
+2. Feature Plan (in GitHub Issue body)
+   - Agent writes detailed plan in issue body
+   - Present for review via comment
 
-3. Implementation
-   └── Use plan as single source of truth
+3. Approval (via GitHub Issue comment)
+   - User approves with keyword: "approved", "lgtm", "go ahead", "let's do it"
+
+4. Implementation (automatic after approval)
+   - Create feature branch
+   - Implement feature
+   - Create PR, link to issue
 ```
+
+## Repository Context
+
+- **Owner:** simonfranken
+- **Repo:** timetracker
+- **Labels:** `feature`, `enhancement`, `planning`, `approved`, `in-progress`, `has-pr`
 
 ## Phase 1: Requirements Discovery
 
 **Goal:** Understand exactly what needs to be built before writing any code.
 
-### Questions to Ask
+### Trigger
+
+When user requests a new feature or significant functionality change, the agent should:
+1. Acknowledge the request
+2. Ask: "Should I create a GitHub issue to plan this feature?"
+3. Wait for confirmation before proceeding
+
+### Questions to Ask (via Issue Comments)
 
 Ask targeted questions to clarify:
 
@@ -50,12 +69,12 @@ Ask targeted questions to clarify:
 - Browser/device compatibility?
 - Integration with existing features?
 
-### Iteration Process
+### Process
 
 1. **Initial Questions** — Ask 3-5 focused questions based on the feature description
-2. **Wait for Answers** — Let the programmer respond
+2. **Wait for Answers** — Check for responses in issue comments
 3. **Follow-up Questions** — Dig deeper based on responses
-4. **Confirm Understanding** — Summarize your understanding and ask for confirmation
+4. **Confirm Understanding** — Summarize understanding and ask for confirmation
 5. **Iterate** — Repeat until requirements are clear
 
 ### Example Question Flow
@@ -63,7 +82,12 @@ Ask targeted questions to clarify:
 ```
 User: "Add the ability to export time entries to CSV"
 
-Agent: "Before I start planning, I have a few questions:
+Agent: "Should I create a GitHub issue to plan this feature?"
+
+[User confirms]
+
+Agent creates issue and asks via comment:
+"Before I plan this, I have a few questions:
 
 1. Should the export include all entries or only filtered entries (if filters are active)?
 2. What columns should be included in the CSV? (date, duration, project, client, description?)
@@ -74,15 +98,11 @@ Agent: "Before I start planning, I have a few questions:
 
 ## Phase 2: Feature Plan
 
-**Goal:** Create a comprehensive plan document before implementation.
-
-### Plan Location
-
-Create the plan at: `docs/features/{feature-name}.md`
-
-Use kebab-case for the filename (e.g., `csv-export.md`, `dark-mode.md`).
+**Goal:** Create a comprehensive plan document in the GitHub issue body.
 
 ### Plan Template
+
+Use this structure for the issue body:
 
 ```markdown
 # Feature: {Feature Name}
@@ -150,10 +170,6 @@ Brief description of what this feature does and why it's needed.
    - Create/update components
    - Add to routes if needed
 
-6. **Step 6: Testing**
-   - Manual testing steps
-   - Edge case verification
-
 ## File Changes
 
 ### New Files
@@ -202,25 +218,47 @@ Brief description of what this feature does and why it's needed.
 
 After creating the plan:
 
-1. Present the plan to the programmer
-2. Ask for feedback and approval
-3. Make requested changes
-4. Get final approval before proceeding to implementation
+1. Post a comment asking for review: "Feature plan ready. Please review and approve."
+2. Wait for approval comment with keyword
+3. Make requested changes if any
+4. Get final approval before proceeding
 
-## Phase 3: Implementation
+### Approval Keywords
+
+The following comments trigger automatic implementation:
+- `approved`
+- `lgtm`
+- `go ahead`
+- `let's do it`
+- `👍`
+
+## Phase 3: Implementation (Automatic After Approval)
 
 **Goal:** Implement the feature exactly as planned.
 
-### Rules
+### Automatic Actions on Approval
 
-1. **Read the plan first** — Start by reading the full plan file
-2. **Follow the plan** — Implement step by step as outlined
-3. **Update if needed** — If implementation differs from plan, update the plan file
-4. **Document changes** — After completion, update relevant documentation
+1. **Create Feature Branch**
+   - Branch name: `feature/{issue-number}-{kebab-name}`
+   - Example: `feature/42-csv-export`
+
+2. **Implement Feature**
+   - Read the approved plan from issue body
+   - Follow implementation steps exactly
+   - Update issue if implementation differs from plan
+
+3. **Create Pull Request**
+   - Title: `[Feature] {Feature Name}`
+   - Body: Include issue reference, summary of changes
+   - Add PR link to issue (comment or label)
+
+4. **Update Issue**
+   - Add `has-pr` label
+   - Comment with PR link
 
 ### Implementation Checklist
 
-- [ ] Read `docs/features/{feature-name}.md`
+- [ ] Create branch from issue approval
 - [ ] Implement database changes (if any)
 - [ ] Implement backend service logic
 - [ ] Implement backend routes
@@ -228,24 +266,48 @@ After creating the plan:
 - [ ] Implement frontend components
 - [ ] Run linting: `npm run lint`
 - [ ] Manual testing
-- [ ] Update plan if implementation differs
-- [ ] Update `project.md` if requirements changed
-- [ ] Update `README.md` if API changed
-- [ ] Update `AGENTS.md` if patterns changed
+- [ ] Create PR and link to issue
+- [ ] Update issue labels
+
+### PR Merge
+
+When PR is merged:
+- Issue auto-closes (if PR body contains "Closes #X")
+- Remove from any project board
 
 ## Quick Reference
 
+### GitHub Tools Available
+
+- `github_create_issue` - Create new issue for feature planning
+- `github_issue_update` - Update issue body/labels
+- `github_issue_comment` - Add comments for Q&A
+- `github_create_branch` - Create feature branch
+- `github_create_pull_request` - Create PR linking to issue
+
 ### Commands
+
 - Frontend lint: `npm run lint` (in `frontend/`)
 - Backend build: `npm run build` (in `backend/`)
 - DB migration: `npm run db:migrate` (in `backend/`)
 - DB generate: `npm run db:generate` (in `backend/`)
 
 ### File Locations
+
 - Backend routes: `backend/src/routes/`
 - Backend services: `backend/src/services/`
 - Backend schemas: `backend/src/schemas/`
 - Frontend pages: `frontend/src/pages/`
 - Frontend hooks: `frontend/src/hooks/`
 - Frontend API: `frontend/src/api/`
-- Feature plans: `docs/features/`
+
+### Labels
+
+| Label | Purpose |
+|-------|---------|
+| `feature` | New feature request |
+| `enhancement` | Improvement to existing feature |
+| `planning` | Issue being planned |
+| `approved` | Plan approved, ready for implementation |
+| `in-progress` | Currently being implemented |
+| `has-pr` | PR created, linked to issue |
