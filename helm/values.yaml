@@ -21,7 +21,7 @@ backend:
   replicaCount: 1
 
   image:
-    repository: git.simon-franken.de/simonfranken/timetracker-backend
+    repository: ghcr.io/simonfranken/timetracker-backend
     tag: latest
     pullPolicy: IfNotPresent
 
@@ -65,7 +65,7 @@ frontend:
   replicaCount: 1
 
   image:
-    repository: git.simon-franken.de/simonfranken/timetracker-frontend
+    repository: ghcr.io/simonfranken/timetracker-frontend
     tag: latest
     pullPolicy: IfNotPresent
 
