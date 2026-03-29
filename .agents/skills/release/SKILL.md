@@ -288,16 +288,30 @@ git push origin "v{version}"
 
 ### Step 3: Create GitHub Release
 
-Use `github_create_release` tool:
+Use the `gh` CLI to create the GitHub release. The GitHub token is stored in `.github-token` at the repository root.
 
-```json
-{
-  "tag_name": "v{version}",
-  "name": "v{version}",
-  "body": "{generated_release_notes}",
-  "draft": false,
-  "prerelease": false
-}
+**Setup gh CLI (if not installed):**
+```bash
+# Install gh CLI via apt (Debian/Ubuntu)
+(type -p wget >/dev/null || (apt update && apt-get install wget -y)) \
+  && sudo mkdir -p -m 755 /etc/apt/keyrings \
+  && wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+  && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+  && sudo apt update \
+  && sudo apt install gh -y
+```
+
+**Create release using gh with token from `.github-token`:**
+```bash
+export GH_TOKEN=$(cat .github-token)
+gh release create "v{version}" --title "v{version}" --notes "{generated_release_notes}"
+```
+
+**Verify gh is authenticated:**
+```bash
+export GH_TOKEN=$(cat .github-token)
+gh auth status
 ```
 
 ### Step 4: Verify Release
@@ -332,6 +346,7 @@ git ls-remote --tags origin | grep "v{version}"
 - Update helm chart: `git add helm/Chart.yaml helm/values.yaml && git commit -m "chore: update helm chart for v{version} release"`
 - Create tag: `git tag -a "v{version}" -m "Release v{version}"`
 - Push tag: `git push origin "v{version}"`
+- Create release: `export GH_TOKEN=$(cat .github-token) && gh release create "v{version}" --title "v{version}" --notes "{notes}"`
 
 ### Helm Chart Files
 
@@ -341,7 +356,7 @@ git ls-remote --tags origin | grep "v{version}"
 ### GitHub Tools
 
 - `github_list_pull_requests` — Get merged PRs for release notes
-- `github_create_release` — Create GitHub release with notes
+- `gh release create` — Create GitHub release with notes (using `.github-token` for auth)
 
 ### Version Format
 
