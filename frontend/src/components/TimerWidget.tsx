@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Play, Square, ChevronDown, Pencil, Check, X, Trash2 } from "lucide-react";
+import { Play, Square, Pause, ChevronDown, Pencil, Check, X, Trash2 } from "lucide-react";
 import { useTimer } from "@/contexts/TimerContext";
 import { useProjects } from "@/hooks/useProjects";
 import { ProjectColorDot } from "@/components/ProjectColorDot";
@@ -47,9 +47,13 @@ export function TimerWidget() {
     ongoingTimer,
     isLoading,
     elapsedSeconds,
+    breakSeconds,
+    isPaused,
     startTimer,
     stopTimer,
     cancelTimer,
+    pauseTimer,
+    resumeTimer,
     updateTimerProject,
     updateTimerStartTime,
   } = useTimer();
@@ -86,6 +90,24 @@ export function TimerWidget() {
       await cancelTimer();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to cancel timer");
+    }
+  };
+
+  const handlePause = async () => {
+    setError(null);
+    try {
+      await pauseTimer();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to pause timer");
+    }
+  };
+
+  const handleResume = async () => {
+    setError(null);
+    try {
+      await resumeTimer();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to resume timer");
     }
   };
 
@@ -164,7 +186,7 @@ export function TimerWidget() {
             <div className="flex items-center justify-between w-full sm:contents">
               {/* Timer Display + Start Time Editor */}
               <div className="flex items-center space-x-2 shrink-0">
-                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                <div className={`w-3 h-3 rounded-full animate-pulse ${isPaused ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
                 {editingStartTime ? (
                   <div className="flex items-center space-x-1">
                     <span className="text-xs text-gray-500 mr-1">Started at</span>
@@ -192,15 +214,27 @@ export function TimerWidget() {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center space-x-2">
-                    <TimerDisplay totalSeconds={elapsedSeconds} />
-                    <button
-                      onClick={handleStartEditStartTime}
-                      title="Adjust start time"
-                      className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
+                  <div className="flex flex-col">
+                    <div className="flex items-center space-x-2">
+                      <TimerDisplay totalSeconds={elapsedSeconds} />
+                      {isPaused && (
+                        <span className="text-xs font-medium text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded">
+                          PAUSED
+                        </span>
+                      )}
+                      <button
+                        onClick={handleStartEditStartTime}
+                        title="Adjust start time"
+                        className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    {breakSeconds > 0 && (
+                      <span className="text-xs text-gray-500 mt-0.5">
+                        Break: {Math.floor(breakSeconds / 60)}m
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -214,6 +248,25 @@ export function TimerWidget() {
                 >
                   <Trash2 className="h-5 w-5" />
                 </button>
+                {isPaused ? (
+                  <button
+                    onClick={() => void handleResume()}
+                    title="Resume timer"
+                    className="flex items-center space-x-2 px-4 py-3 bg-yellow-600 text-white rounded-lg font-medium hover:bg-yellow-700 transition-colors"
+                  >
+                    <Play className="h-5 w-5 fill-current" />
+                    <span>Resume</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => void handlePause()}
+                    title="Pause timer"
+                    className="flex items-center space-x-2 px-4 py-3 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors"
+                  >
+                    <Pause className="h-5 w-5 fill-current" />
+                    <span>Pause</span>
+                  </button>
+                )}
                 <button
                   onClick={handleStop}
                   disabled={!ongoingTimer.project}

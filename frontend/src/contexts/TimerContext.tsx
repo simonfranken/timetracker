@@ -15,9 +15,13 @@ interface TimerContextType {
   ongoingTimer: OngoingTimer | null;
   isLoading: boolean;
   elapsedSeconds: number;
+  breakSeconds: number;
+  isPaused: boolean;
   startTimer: (projectId?: string) => Promise<void>;
   updateTimerProject: (projectId?: string | null) => Promise<void>;
   updateTimerStartTime: (startTime: string) => Promise<void>;
+  pauseTimer: () => Promise<void>;
+  resumeTimer: () => Promise<void>;
   cancelTimer: () => Promise<void>;
   stopTimer: (projectId?: string) => Promise<TimeEntry | null>;
 }
@@ -27,6 +31,7 @@ const TimerContext = createContext<TimerContextType | undefined>(undefined);
 export function TimerProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [breakSeconds, setBreakSeconds] = useState(0);
   // Use ref for interval ID to avoid stale closure issues
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -40,21 +45,42 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (ongoingTimer) {
       const startTime = new Date(ongoingTimer.startTime).getTime();
-      const now = Date.now();
-      const initialElapsed = Math.floor((now - startTime) / 1000);
-      setElapsedSeconds(initialElapsed);
+      const breakMs = ongoingTimer.breakMinutes * 60000;
+      const isPaused = ongoingTimer.breakStart !== null;
 
-      // Clear any existing interval first
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      if (isPaused) {
+        // Timer is paused - calculate elapsed up to pause point
+        const breakStartTime = new Date(ongoingTimer.breakStart!).getTime();
+        const elapsedUpToPause = breakStartTime - startTime - breakMs;
+        setElapsedSeconds(Math.floor(elapsedUpToPause / 1000));
+        setBreakSeconds(ongoingTimer.breakMinutes * 60);
+
+        // Clear any existing interval
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      } else {
+        // Timer is running - calculate elapsed excluding break time
+        const now = Date.now();
+        const initialElapsed = Math.floor((now - startTime - breakMs) / 1000);
+        setElapsedSeconds(initialElapsed);
+        setBreakSeconds(ongoingTimer.breakMinutes * 60);
+
+        // Clear any existing interval first
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+
+        // Start interval to update elapsed time
+        intervalRef.current = setInterval(() => {
+          const currentBreakMs = ongoingTimer.breakMinutes * 60000;
+          setElapsedSeconds(Math.floor((Date.now() - startTime - currentBreakMs) / 1000));
+        }, 1000);
       }
-
-      // Start interval to update elapsed time
-      intervalRef.current = setInterval(() => {
-        setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
-      }, 1000);
     } else {
       setElapsedSeconds(0);
+      setBreakSeconds(0);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -103,6 +129,22 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  // Pause timer mutation
+  const pauseMutation = useMutation({
+    mutationFn: timerApi.pause,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ongoingTimer"] });
+    },
+  });
+
+  // Resume timer mutation
+  const resumeMutation = useMutation({
+    mutationFn: timerApi.resume,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ongoingTimer"] });
+    },
+  });
+
   const startTimer = useCallback(
     async (projectId?: string) => {
       await startMutation.mutateAsync(projectId);
@@ -123,6 +165,14 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     },
     [updateMutation],
   );
+
+  const pauseTimer = useCallback(async () => {
+    await pauseMutation.mutateAsync();
+  }, [pauseMutation]);
+
+  const resumeTimer = useCallback(async () => {
+    await resumeMutation.mutateAsync();
+  }, [resumeMutation]);
 
   const cancelTimer = useCallback(async () => {
     await cancelMutation.mutateAsync();
@@ -146,9 +196,13 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         ongoingTimer: ongoingTimer ?? null,
         isLoading,
         elapsedSeconds,
+        breakSeconds,
+        isPaused: ongoingTimer?.breakStart !== null && ongoingTimer?.breakStart !== undefined,
         startTimer,
         updateTimerProject,
         updateTimerStartTime,
+        pauseTimer,
+        resumeTimer,
         cancelTimer,
         stopTimer,
       }}

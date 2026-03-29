@@ -31,6 +31,16 @@ export const timerApi = {
     return data;
   },
 
+  pause: async (): Promise<OngoingTimer> => {
+    const { data } = await apiClient.post<OngoingTimer>('/timer/pause');
+    return data;
+  },
+
+  resume: async (): Promise<OngoingTimer> => {
+    const { data } = await apiClient.post<OngoingTimer>('/timer/resume');
+    return data;
+  },
+
   cancel: async (): Promise<void> => {
     await apiClient.delete('/timer');
   },

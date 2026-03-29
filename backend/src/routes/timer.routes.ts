@@ -73,4 +73,24 @@ router.post(
   }
 );
 
+// POST /api/timer/pause - Pause timer
+router.post('/pause', requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const timer = await timerService.pause(req.user!.id);
+    res.json(timer);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/timer/resume - Resume timer
+router.post('/resume', requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const timer = await timerService.resume(req.user!.id);
+    res.json(timer);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

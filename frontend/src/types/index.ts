@@ -44,6 +44,8 @@ export interface TimeEntry {
 export interface OngoingTimer {
   id: string;
   startTime: string;
+  breakStart: string | null;
+  breakMinutes: number;
   projectId: string | null;
   project: (Pick<Project, 'id' | 'name' | 'color'> & {
     client: Pick<Client, 'id' | 'name'>;
