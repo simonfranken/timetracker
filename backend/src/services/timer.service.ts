@@ -147,6 +147,75 @@ export class TimerService {
     await prisma.ongoingTimer.delete({ where: { userId } });
   }
 
+  async pause(userId: string) {
+    const timer = await this.getOngoingTimer(userId);
+    if (!timer) {
+      throw new NotFoundError("No timer is running");
+    }
+
+    if (timer.breakStart) {
+      throw new BadRequestError("Timer is already paused");
+    }
+
+    return prisma.ongoingTimer.update({
+      where: { userId },
+      data: { breakStart: new Date() },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            client: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async resume(userId: string) {
+    const timer = await this.getOngoingTimer(userId);
+    if (!timer) {
+      throw new NotFoundError("No timer is running");
+    }
+
+    if (!timer.breakStart) {
+      throw new BadRequestError("Timer is not paused");
+    }
+
+    const now = new Date();
+    const breakStartMs = timer.breakStart.getTime();
+    const breakDurationMinutes = Math.floor((now.getTime() - breakStartMs) / 60000);
+
+    return prisma.ongoingTimer.update({
+      where: { userId },
+      data: {
+        breakStart: null,
+        breakMinutes: timer.breakMinutes + breakDurationMinutes,
+      },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            client: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
   async stop(userId: string, data?: StopTimerInput) {
     const timer = await this.getOngoingTimer(userId);
     if (!timer) {
@@ -179,6 +248,15 @@ export class TimerService {
     const endTime = new Date();
     const startTime = timer.startTime;
 
+    // Calculate final break minutes (including current pause if timer is paused)
+    let breakMinutes = timer.breakMinutes;
+    if (timer.breakStart) {
+      const currentPauseMinutes = Math.floor(
+        (endTime.getTime() - timer.breakStart.getTime()) / 60000
+      );
+      breakMinutes += currentPauseMinutes;
+    }
+
     // Check for overlapping entries
     const hasOverlap = await hasOverlappingEntries(
       userId,
@@ -200,6 +278,7 @@ export class TimerService {
         data: {
           startTime,
           endTime,
+          breakMinutes,
           userId,
           projectId,
         },

@@ -86,10 +86,12 @@ model TimeEntry {
 }
 
 model OngoingTimer {
-  id        String   @id @default(uuid())
-  startTime DateTime @map("start_time") @db.Timestamptz()
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String    @id @default(uuid())
+  startTime   DateTime  @map("start_time") @db.Timestamptz()
+  breakStart  DateTime? @map("break_start") @db.Timestamptz()
+  breakMinutes Int      @default(0) @map("break_minutes")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   userId    String   @unique @map("user_id") @db.VarChar(255)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
