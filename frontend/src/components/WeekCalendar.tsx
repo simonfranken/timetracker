@@ -304,178 +304,184 @@ export function WeekCalendar({
     return Array.from({ length: slotCount + 1 }, (_, idx) => visibleStartHour + idx * 0.5);
   }, [totalRangeHours, visibleStartHour]);
 
+  const columnTemplate = "68px repeat(7, minmax(0, 1fr))";
+
   return (
     <div className="h-full min-h-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
-      <div className="h-full min-h-0 overflow-auto">
-        <div className="min-w-[960px]">
-        <div className="grid" style={{ gridTemplateColumns: "68px repeat(7, minmax(0, 1fr))" }}>
-          <div className="border-b border-r border-gray-200 bg-gray-50" />
-          {Array.from({ length: 7 }, (_, dayIndex) => {
-            const dayDate = addDays(weekStart, dayIndex);
-            const isToday = isSameDay(dayDate, today);
-            const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
-
-            return (
-              <div
-                key={dayIndex}
-                className={`border-b border-r border-gray-200 px-3 py-2 ${
-                  isToday
-                    ? "bg-primary-50"
-                    : isWeekend
-                      ? "bg-gray-50"
-                      : "bg-white"
-                }`}
-              >
-                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {format(dayDate, "EEE")}
-                </div>
-                <div className="text-base font-semibold text-gray-900">{format(dayDate, "d")}</div>
-                <div className="text-xs text-gray-500">{dayTotals?.[dayIndex] ?? "0h"}</div>
-              </div>
-            );
-          })}
-
-          <div className="relative border-r border-gray-200 bg-gray-50" style={{ height: `${gridHeight}px` }}>
-            {slots.map((hour) => {
-              const top = ((hour - visibleStartHour) / totalRangeHours) * gridHeight;
-              const isHourMark = Number.isInteger(hour);
+      <div className="h-full min-h-0 overflow-x-auto">
+        <div className="min-w-[960px] h-full min-h-0 flex flex-col">
+          <div className="grid shrink-0" style={{ gridTemplateColumns: columnTemplate }}>
+            <div className="border-b border-r border-gray-200 bg-gray-50" />
+            {Array.from({ length: 7 }, (_, dayIndex) => {
+              const dayDate = addDays(weekStart, dayIndex);
+              const isToday = isSameDay(dayDate, today);
+              const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
 
               return (
                 <div
-                  key={`axis-${hour}`}
-                  className="absolute left-0 right-0"
-                  style={{ top: `${top}px` }}
+                  key={`header-${dayIndex}`}
+                  className={`border-b border-r border-gray-200 px-3 py-2 ${
+                    isToday
+                      ? "bg-primary-50"
+                      : isWeekend
+                        ? "bg-gray-50"
+                        : "bg-white"
+                  }`}
                 >
-                  {isHourMark && hour < 24 && (
-                    <span className="absolute -top-2 right-2 text-[11px] font-medium text-gray-500">
-                      {format(new Date(2000, 0, 1, hour, 0), "HH:mm")}
-                    </span>
-                  )}
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    {format(dayDate, "EEE")}
+                  </div>
+                  <div className="text-base font-semibold text-gray-900">{format(dayDate, "d")}</div>
+                  <div className="text-xs text-gray-500">{dayTotals?.[dayIndex] ?? "0h"}</div>
                 </div>
               );
             })}
           </div>
 
-          {Array.from({ length: 7 }, (_, dayIndex) => {
-            const dayDate = addDays(weekStart, dayIndex);
-            const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
-            const dayBlocks = positionedByDay[dayIndex] ?? [];
-            const dayIndicators = hiddenIndicatorsByDay[dayIndex] ?? [];
-
-            return (
-              <div
-                key={`column-${dayIndex}`}
-                className={`relative border-r border-gray-200 ${isWeekend ? "bg-gray-50/60" : "bg-white"}`}
-                style={{ height: `${gridHeight}px` }}
-                tabIndex={dayIndex === 0 ? 0 : -1}
-                onFocus={(event) => {
-                  if (event.currentTarget === event.target && sortedBlocks.length > 0) {
-                    focusBlock(sortedBlocks[0].id);
-                  }
-                }}
-              >
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="grid" style={{ gridTemplateColumns: columnTemplate }}>
+              <div className="relative border-r border-gray-200 bg-gray-50" style={{ height: `${gridHeight}px` }}>
                 {slots.map((hour) => {
                   const top = ((hour - visibleStartHour) / totalRangeHours) * gridHeight;
                   const isHourMark = Number.isInteger(hour);
-                  return (
-                    <div
-                      key={`line-${dayIndex}-${hour}`}
-                      className={`absolute left-0 right-0 border-t ${
-                        isHourMark ? "border-gray-200" : "border-gray-100"
-                      }`}
-                      style={{ top: `${top}px` }}
-                    />
-                  );
-                })}
 
-                {dayIndicators.map((indicator) => {
-                  const top = ((indicator.startHour - visibleStartHour) / totalRangeHours) * gridHeight;
                   return (
                     <div
-                      key={`hidden-${dayIndex}-${indicator.startHour}`}
-                      className="absolute right-1 z-30 rounded bg-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-600"
-                      style={{ top: `${top + 2}px` }}
+                      key={`axis-${hour}`}
+                      className="absolute left-0 right-0"
+                      style={{ top: `${top}px` }}
                     >
-                      +{indicator.hiddenCount} more
+                      {isHourMark && hour < 24 && (
+                        <span className="absolute -top-2 right-2 text-[11px] font-medium text-gray-500">
+                          {format(new Date(2000, 0, 1, hour, 0), "HH:mm")}
+                        </span>
+                      )}
                     </div>
                   );
                 })}
-
-                {dayBlocks.map((block) => {
-                  const rawTop = ((block.startHour - visibleStartHour) / totalRangeHours) * gridHeight;
-                  const rawHeight =
-                    ((block.endHour - block.startHour) / totalRangeHours) * gridHeight;
-                  const height = Math.max(minBlockHeight, rawHeight);
-                  const top = Math.min(rawTop, Math.max(0, gridHeight - height));
-
-                  let contentLevel: "full" | "medium" | "minimal" = "minimal";
-                  if (height >= 60) {
-                    contentLevel = "full";
-                  } else if (height > 30) {
-                    contentLevel = "medium";
-                  }
-
-                  return (
-                    <button
-                      key={block.id}
-                      ref={(element) => {
-                        buttonRefs.current[block.id] = element;
-                      }}
-                      type="button"
-                      className={`absolute z-20 rounded-md border border-black/10 px-2 py-1 text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
-                        focusedBlockId === block.id ? "ring-2 ring-primary-500" : ""
-                      }`}
-                      style={{
-                        top: `${top}px`,
-                        left: `calc(${block.leftPercent}% + 2px)`,
-                        width: `calc(${block.widthPercent}% - 4px)`,
-                        height: `${height}px`,
-                        backgroundColor: block.color,
-                      }}
-                      title={block.tooltip ?? `${block.title} (${block.label})`}
-                      onClick={() => onBlockClick(block.id)}
-                      onFocus={() => setFocusedBlockId(block.id)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          onBlockClick(block.id);
-                          return;
-                        }
-
-                        if (
-                          event.key === "ArrowUp" ||
-                          event.key === "ArrowDown" ||
-                          event.key === "ArrowLeft" ||
-                          event.key === "ArrowRight"
-                        ) {
-                          event.preventDefault();
-                          const nextId = navigateFromBlock(block.id, event.key);
-                          if (nextId) {
-                            focusBlock(nextId);
-                          }
-                        }
-                      }}
-                    >
-                      <div className="truncate text-xs font-semibold text-white drop-shadow-sm">
-                        {block.title}
-                      </div>
-                      {contentLevel === "full" && block.subtitle && (
-                        <div className="truncate text-[11px] text-white/90">{block.subtitle}</div>
-                      )}
-                      {(contentLevel === "full" || contentLevel === "medium") && (
-                        <div className="truncate text-[10px] text-white/85">{block.label}</div>
-                      )}
-                      {block.isActive && (
-                        <div className="absolute right-1 top-1 h-2 w-2 rounded-full bg-white/90 animate-pulse" />
-                      )}
-                    </button>
-                  );
-                })}
               </div>
-            );
-          })}
+
+              {Array.from({ length: 7 }, (_, dayIndex) => {
+                const dayDate = addDays(weekStart, dayIndex);
+                const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
+                const dayBlocks = positionedByDay[dayIndex] ?? [];
+                const dayIndicators = hiddenIndicatorsByDay[dayIndex] ?? [];
+
+                return (
+                  <div
+                    key={`column-${dayIndex}`}
+                    className={`relative border-r border-gray-200 ${isWeekend ? "bg-gray-50/60" : "bg-white"}`}
+                    style={{ height: `${gridHeight}px` }}
+                    tabIndex={dayIndex === 0 ? 0 : -1}
+                    onFocus={(event) => {
+                      if (event.currentTarget === event.target && sortedBlocks.length > 0) {
+                        focusBlock(sortedBlocks[0].id);
+                      }
+                    }}
+                  >
+                    {slots.map((hour) => {
+                      const top = ((hour - visibleStartHour) / totalRangeHours) * gridHeight;
+                      const isHourMark = Number.isInteger(hour);
+                      return (
+                        <div
+                          key={`line-${dayIndex}-${hour}`}
+                          className={`absolute left-0 right-0 border-t ${
+                            isHourMark ? "border-gray-200" : "border-gray-100"
+                          }`}
+                          style={{ top: `${top}px` }}
+                        />
+                      );
+                    })}
+
+                    {dayIndicators.map((indicator) => {
+                      const top = ((indicator.startHour - visibleStartHour) / totalRangeHours) * gridHeight;
+                      return (
+                        <div
+                          key={`hidden-${dayIndex}-${indicator.startHour}`}
+                          className="absolute right-1 z-30 rounded bg-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-600"
+                          style={{ top: `${top + 2}px` }}
+                        >
+                          +{indicator.hiddenCount} more
+                        </div>
+                      );
+                    })}
+
+                    {dayBlocks.map((block) => {
+                      const rawTop = ((block.startHour - visibleStartHour) / totalRangeHours) * gridHeight;
+                      const rawHeight =
+                        ((block.endHour - block.startHour) / totalRangeHours) * gridHeight;
+                      const height = Math.max(minBlockHeight, rawHeight);
+                      const top = Math.min(rawTop, Math.max(0, gridHeight - height));
+
+                      let contentLevel: "full" | "medium" | "minimal" = "minimal";
+                      if (height >= 60) {
+                        contentLevel = "full";
+                      } else if (height > 30) {
+                        contentLevel = "medium";
+                      }
+
+                      return (
+                        <button
+                          key={block.id}
+                          ref={(element) => {
+                            buttonRefs.current[block.id] = element;
+                          }}
+                          type="button"
+                          className={`absolute z-20 rounded-md border border-black/10 px-2 py-1 text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                            focusedBlockId === block.id ? "ring-2 ring-primary-500" : ""
+                          }`}
+                          style={{
+                            top: `${top}px`,
+                            left: `calc(${block.leftPercent}% + 2px)`,
+                            width: `calc(${block.widthPercent}% - 4px)`,
+                            height: `${height}px`,
+                            backgroundColor: block.color,
+                          }}
+                          title={block.tooltip ?? `${block.title} (${block.label})`}
+                          onClick={() => onBlockClick(block.id)}
+                          onFocus={() => setFocusedBlockId(block.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              onBlockClick(block.id);
+                              return;
+                            }
+
+                            if (
+                              event.key === "ArrowUp" ||
+                              event.key === "ArrowDown" ||
+                              event.key === "ArrowLeft" ||
+                              event.key === "ArrowRight"
+                            ) {
+                              event.preventDefault();
+                              const nextId = navigateFromBlock(block.id, event.key);
+                              if (nextId) {
+                                focusBlock(nextId);
+                              }
+                            }
+                          }}
+                        >
+                          <div className="truncate text-xs font-semibold text-white drop-shadow-sm">
+                            {block.title}
+                          </div>
+                          {contentLevel === "full" && block.subtitle && (
+                            <div className="truncate text-[11px] text-white/90">{block.subtitle}</div>
+                          )}
+                          {(contentLevel === "full" || contentLevel === "medium") && (
+                            <div className="truncate text-[10px] text-white/85">{block.label}</div>
+                          )}
+                          {block.isActive && (
+                            <div className="absolute right-1 top-1 h-2 w-2 rounded-full bg-white/90 animate-pulse" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
-      </div>
       </div>
     </div>
   );
