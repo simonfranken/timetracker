@@ -446,7 +446,7 @@ export function WeekCalendar({
                             buttonRefs.current[block.id] = element;
                           }}
                           type="button"
-                          className={`absolute z-20 rounded-md border border-black/10 px-2 py-1 text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                          className={`absolute z-20 flex flex-col items-start rounded-md border border-black/10 px-2 py-1 text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
                             focusedBlockId === block.id ? "ring-2 ring-primary-500" : ""
                           }`}
                           style={{
