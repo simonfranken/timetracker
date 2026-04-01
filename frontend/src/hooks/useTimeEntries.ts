@@ -7,18 +7,27 @@ import type {
   StatisticsFilters,
 } from "@/types";
 
-export function useTimeEntries(filters?: TimeEntryFilters) {
+interface UseTimeEntriesOptions {
+  enabled?: boolean;
+}
+
+export function useTimeEntries(
+  filters?: TimeEntryFilters,
+  options?: UseTimeEntriesOptions,
+) {
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["timeEntries", filters],
     queryFn: () => timeEntriesApi.getAll(filters),
+    enabled: options?.enabled ?? true,
   });
 
   const createTimeEntry = useMutation({
     mutationFn: (input: CreateTimeEntryInput) => timeEntriesApi.create(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["timeEntries"] });
+      queryClient.invalidateQueries({ queryKey: ["calendarWeekEntries"] });
     },
   });
 
@@ -27,6 +36,7 @@ export function useTimeEntries(filters?: TimeEntryFilters) {
       timeEntriesApi.update(id, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["timeEntries"] });
+      queryClient.invalidateQueries({ queryKey: ["calendarWeekEntries"] });
     },
   });
 
@@ -34,6 +44,7 @@ export function useTimeEntries(filters?: TimeEntryFilters) {
     mutationFn: (id: string) => timeEntriesApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["timeEntries"] });
+      queryClient.invalidateQueries({ queryKey: ["calendarWeekEntries"] });
     },
   });
 

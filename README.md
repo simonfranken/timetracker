@@ -9,6 +9,7 @@ A multi-user web application for tracking time spent working on projects. Users 
 - **Project Management** - Organize work into projects with color coding
 - **Time Tracking** - Start/stop timer with live elapsed time display
 - **Manual Entry** - Add time entries manually for past work
+- **Calendar View** - Visual week timetable with overlap handling and running timer block
 - **Validation** - Overlap prevention and end-time validation
 - **Statistics** - View aggregated time tracking data by project and client
 - **Client Targets** - Set hourly targets per client with weekly/monthly periods

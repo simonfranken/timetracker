@@ -75,6 +75,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     mutationFn: timerApi.start,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ongoingTimer"] });
+      queryClient.invalidateQueries({ queryKey: ["calendarWeekEntries"] });
     },
   });
 
@@ -83,6 +84,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     mutationFn: timerApi.update,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ongoingTimer"] });
+      queryClient.invalidateQueries({ queryKey: ["calendarWeekEntries"] });
     },
   });
 
@@ -91,6 +93,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     mutationFn: timerApi.cancel,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ongoingTimer"] });
+      queryClient.invalidateQueries({ queryKey: ["calendarWeekEntries"] });
     },
   });
 
@@ -100,6 +103,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ongoingTimer"] });
       queryClient.invalidateQueries({ queryKey: ["timeEntries"] });
+      queryClient.invalidateQueries({ queryKey: ["calendarWeekEntries"] });
     },
   });
 
