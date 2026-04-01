@@ -6,8 +6,8 @@ export function Layout() {
   return (
     <div className="h-[100vh] w-[100vw] flex flex-col bg-gray-50">
       <Navbar />
-      <main className="pt-4 pb-8 grow overflow-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="grow min-h-0 overflow-auto pt-4 pb-8">
+        <div className="mx-auto h-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <Outlet />
         </div>
       </main>

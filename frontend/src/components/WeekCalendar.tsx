@@ -305,8 +305,9 @@ export function WeekCalendar({
   }, [totalRangeHours, visibleStartHour]);
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white overflow-auto">
-      <div className="min-w-[960px]">
+    <div className="h-full min-h-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <div className="h-full min-h-0 overflow-auto">
+        <div className="min-w-[960px]">
         <div className="grid" style={{ gridTemplateColumns: "68px repeat(7, minmax(0, 1fr))" }}>
           <div className="border-b border-r border-gray-200 bg-gray-50" />
           {Array.from({ length: 7 }, (_, dayIndex) => {
@@ -474,6 +475,7 @@ export function WeekCalendar({
             );
           })}
         </div>
+      </div>
       </div>
     </div>
   );

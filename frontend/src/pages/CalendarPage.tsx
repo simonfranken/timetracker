@@ -182,8 +182,8 @@ export function CalendarPage({ weekStart: initialWeekStart }: CalendarPageProps)
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-xs font-medium uppercase tracking-wide text-gray-500">Week</div>
           <div className="text-lg font-semibold text-gray-900">{weekLabel}</div>
@@ -214,12 +214,14 @@ export function CalendarPage({ weekStart: initialWeekStart }: CalendarPageProps)
         </div>
       </div>
 
-      <WeekCalendar
-        weekStart={weekStart}
-        blocks={blocks}
-        onBlockClick={handleBlockClick}
-        dayTotals={dayTotals}
-      />
+      <div className="min-h-0 flex-1">
+        <WeekCalendar
+          weekStart={weekStart}
+          blocks={blocks}
+          onBlockClick={handleBlockClick}
+          dayTotals={dayTotals}
+        />
+      </div>
 
       {editingEntry && (
         <TimeEntryFormModal
@@ -232,7 +234,7 @@ export function CalendarPage({ weekStart: initialWeekStart }: CalendarPageProps)
 
       {isTimerModalOpen && <OngoingTimerEditModal onClose={() => setIsTimerModalOpen(false)} />}
 
-      <div className="text-xs text-gray-500">
+      <div className="shrink-0 text-xs text-gray-500">
         Tip: use arrow keys to move between entries and press Enter to edit the focused block.
       </div>
     </div>

@@ -15,6 +15,7 @@ import type { TimeEntry } from "@/types";
 
 export function TimeEntriesPage() {
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const isCalendarView = viewMode === "calendar";
   const { data, isLoading, createTimeEntry, updateTimeEntry, deleteTimeEntry } =
     useTimeEntries(undefined, { enabled: viewMode === "list" });
 
@@ -46,8 +47,8 @@ export function TimeEntriesPage() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className={isCalendarView ? "flex h-full min-h-0 flex-col gap-5 overflow-hidden" : "space-y-5"}>
+      <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Time Entries</h1>
           <p className="text-sm text-gray-600">Manage your tracked time</p>
@@ -57,7 +58,7 @@ export function TimeEntriesPage() {
         </button>
       </div>
 
-      <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+      <div className="inline-flex shrink-0 rounded-lg border border-gray-200 bg-white p-1">
         <button
           type="button"
           className={`inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition ${
@@ -156,7 +157,9 @@ export function TimeEntriesPage() {
           )}
         </div>
       ) : (
-        <CalendarPage />
+        <div className="min-h-0 flex-1">
+          <CalendarPage />
+        </div>
       )}
 
       {isModalOpen && (
