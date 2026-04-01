@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import { addDays, format, isSameDay } from "date-fns";
 
 export interface WeekCalendarBlock {
@@ -185,8 +185,6 @@ export function WeekCalendar({
   dayTotals,
 }: WeekCalendarProps) {
   const today = new Date();
-  const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
 
   const normalizedBlocks = useMemo(
     () =>
@@ -244,75 +242,6 @@ export function WeekCalendar({
       ),
     [blocksByDay, maxOverlapColumns],
   );
-
-  const sortedBlocks = useMemo(() => {
-    return [...normalizedBlocks].sort((a, b) => {
-      if (a.dayIndex !== b.dayIndex) {
-        return a.dayIndex - b.dayIndex;
-      }
-      if (a.startHour !== b.startHour) {
-        return a.startHour - b.startHour;
-      }
-      return a.endHour - b.endHour;
-    });
-  }, [normalizedBlocks]);
-
-  const blockById = useMemo(() => {
-    return new Map(sortedBlocks.map((block) => [block.id, block]));
-  }, [sortedBlocks]);
-
-  const navigateFromBlock = (currentId: string, key: string): string | null => {
-    const current = blockById.get(currentId);
-    if (!current) {
-      return null;
-    }
-
-    if (key === "ArrowUp" || key === "ArrowDown") {
-      const sameDay = sortedBlocks.filter((block) => block.dayIndex === current.dayIndex);
-      const currentIndex = sameDay.findIndex((block) => block.id === currentId);
-      if (currentIndex === -1) {
-        return null;
-      }
-
-      if (key === "ArrowUp" && currentIndex > 0) {
-        return sameDay[currentIndex - 1].id;
-      }
-      if (key === "ArrowDown" && currentIndex < sameDay.length - 1) {
-        return sameDay[currentIndex + 1].id;
-      }
-      return null;
-    }
-
-    if (key === "ArrowLeft" || key === "ArrowRight") {
-      const targetDay = current.dayIndex + (key === "ArrowLeft" ? -1 : 1);
-      if (targetDay < 0 || targetDay > 6) {
-        return null;
-      }
-
-      const candidates = sortedBlocks.filter((block) => block.dayIndex === targetDay);
-      if (candidates.length === 0) {
-        return null;
-      }
-
-      candidates.sort((a, b) => {
-        const diffA = Math.abs(a.startHour - current.startHour);
-        const diffB = Math.abs(b.startHour - current.startHour);
-        if (diffA !== diffB) {
-          return diffA - diffB;
-        }
-        return a.startHour - b.startHour;
-      });
-
-      return candidates[0].id;
-    }
-
-    return null;
-  };
-
-  const focusBlock = (id: string) => {
-    setFocusedBlockId(id);
-    buttonRefs.current[id]?.focus();
-  };
 
   const slots = useMemo(() => {
     const slotCount = Math.ceil(totalRangeHours * 2);
@@ -391,12 +320,6 @@ export function WeekCalendar({
                     key={`column-${dayIndex}`}
                     className={`relative border-r border-gray-200 ${isWeekend ? "bg-gray-50/60" : "bg-white"}`}
                     style={{ height: `${gridHeight}px` }}
-                    tabIndex={dayIndex === 0 ? 0 : -1}
-                    onFocus={(event) => {
-                      if (event.currentTarget === event.target && sortedBlocks.length > 0) {
-                        focusBlock(sortedBlocks[0].id);
-                      }
-                    }}
                   >
                     {slots.map((hour) => {
                       const top = ((hour - visibleStartHour) / totalRangeHours) * gridHeight;
@@ -442,13 +365,8 @@ export function WeekCalendar({
                       return (
                         <button
                           key={block.id}
-                          ref={(element) => {
-                            buttonRefs.current[block.id] = element;
-                          }}
                           type="button"
-                          className={`absolute z-20 flex flex-col items-start rounded-md border border-black/10 px-2 py-1 text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
-                            focusedBlockId === block.id ? "ring-2 ring-primary-500" : ""
-                          }`}
+                          className="absolute z-20 flex flex-col items-start rounded-md border border-black/10 px-2 py-1 text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                           style={{
                             top: `${top}px`,
                             left: `calc(${block.leftPercent}% + 2px)`,
@@ -458,27 +376,6 @@ export function WeekCalendar({
                           }}
                           title={block.tooltip ?? `${block.title} (${block.label})`}
                           onClick={() => onBlockClick(block.id)}
-                          onFocus={() => setFocusedBlockId(block.id)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              onBlockClick(block.id);
-                              return;
-                            }
-
-                            if (
-                              event.key === "ArrowUp" ||
-                              event.key === "ArrowDown" ||
-                              event.key === "ArrowLeft" ||
-                              event.key === "ArrowRight"
-                            ) {
-                              event.preventDefault();
-                              const nextId = navigateFromBlock(block.id, event.key);
-                              if (nextId) {
-                                focusBlock(nextId);
-                              }
-                            }
-                          }}
                         >
                           <div className="truncate text-xs font-semibold text-white drop-shadow-sm">
                             {block.title}

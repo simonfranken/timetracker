@@ -233,10 +233,6 @@ export function CalendarPage({ weekStart: initialWeekStart }: CalendarPageProps)
       )}
 
       {isTimerModalOpen && <OngoingTimerEditModal onClose={() => setIsTimerModalOpen(false)} />}
-
-      <div className="shrink-0 text-xs text-gray-500">
-        Tip: use arrow keys to move between entries and press Enter to edit the focused block.
-      </div>
     </div>
   );
 }
