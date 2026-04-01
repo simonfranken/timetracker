@@ -37,6 +37,21 @@ interface HiddenIndicator {
 }
 
 const HOUR_HEIGHT = 72;
+const HOUR_LABEL_HEIGHT = 16;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getHourLabelOffsetTop(lineTop: number, gridHeight: number): number {
+  const centeredGlobalTop = lineTop - HOUR_LABEL_HEIGHT / 2;
+  const clampedGlobalTop = clamp(
+    centeredGlobalTop,
+    0,
+    Math.max(0, gridHeight - HOUR_LABEL_HEIGHT),
+  );
+  return clampedGlobalTop - lineTop;
+}
 
 function clampHour(value: number): number {
   return Math.max(0, Math.min(23.999, value));
@@ -340,10 +355,11 @@ export function WeekCalendar({
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="grid" style={{ gridTemplateColumns: columnTemplate }}>
-              <div className="relative border-r border-gray-200 bg-gray-50" style={{ height: `${gridHeight}px` }}>
+              <div className="relative overflow-hidden border-r border-gray-200 bg-gray-50" style={{ height: `${gridHeight}px` }}>
                 {slots.map((hour) => {
                   const top = ((hour - visibleStartHour) / totalRangeHours) * gridHeight;
                   const isHourMark = Number.isInteger(hour);
+                  const labelOffsetTop = getHourLabelOffsetTop(top, gridHeight);
 
                   return (
                     <div
@@ -352,7 +368,10 @@ export function WeekCalendar({
                       style={{ top: `${top}px` }}
                     >
                       {isHourMark && hour < 24 && (
-                        <span className="absolute -top-2 right-2 text-[11px] font-medium text-gray-500">
+                        <span
+                          className="absolute right-2 text-[11px] font-medium leading-4 text-gray-500"
+                          style={{ top: `${labelOffsetTop}px` }}
+                        >
                           {format(new Date(2000, 0, 1, hour, 0), "HH:mm")}
                         </span>
                       )}

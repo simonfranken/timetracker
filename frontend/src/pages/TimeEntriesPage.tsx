@@ -14,7 +14,7 @@ import {
 import type { TimeEntry } from "@/types";
 
 export function TimeEntriesPage() {
-  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("calendar");
   const isCalendarView = viewMode === "calendar";
   const { data, isLoading, createTimeEntry, updateTimeEntry, deleteTimeEntry } =
     useTimeEntries(undefined, { enabled: viewMode === "list" });
@@ -58,18 +58,7 @@ export function TimeEntriesPage() {
         </button>
       </div>
 
-      <div className="inline-flex shrink-0 rounded-lg border border-gray-200 bg-white p-1">
-        <button
-          type="button"
-          className={`inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition ${
-            viewMode === "list"
-              ? "bg-primary-50 text-primary-700"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
-          onClick={() => setViewMode("list")}
-        >
-          <List className="mr-1.5 h-4 w-4" /> List
-        </button>
+      <div className="inline-flex shrink-0 self-start rounded-lg border border-gray-200 bg-white p-1">
         <button
           type="button"
           className={`inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition ${
@@ -80,6 +69,17 @@ export function TimeEntriesPage() {
           onClick={() => setViewMode("calendar")}
         >
           <CalendarDays className="mr-1.5 h-4 w-4" /> Calendar
+        </button>
+        <button
+          type="button"
+          className={`inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition ${
+            viewMode === "list"
+              ? "bg-primary-50 text-primary-700"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+          onClick={() => setViewMode("list")}
+        >
+          <List className="mr-1.5 h-4 w-4" /> List
         </button>
       </div>
 
