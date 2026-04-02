@@ -8,6 +8,13 @@
       "headers": {
         "Authorization": "Bearer {file:.github-token}"
       }
+    },
+    "Stitch": {
+      "type": "remote",
+      "url": "https://stitch.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "{file:.stitch-token}"
+      }
     }
   }
 }

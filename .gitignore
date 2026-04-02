@@ -12,6 +12,7 @@ build/
 .env.local
 .env.*.local
 .github-token
+.stitch-token
 
 # IDE
 .idea/
