@@ -3,41 +3,127 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --tt-bg: 248 250 252;
+    --tt-surface: 255 255 255;
+    --tt-surface-muted: 238 243 246;
+    --tt-surface-strong: 226 232 240;
+    --tt-text: 28 35 41;
+    --tt-text-dim: 90 104 120;
+    --tt-border: 187 199 213;
+    --tt-primary-start: 79 70 229;
+    --tt-primary-end: 67 56 202;
+    --tt-danger: 220 38 38;
+    --tt-timer-offset: 9rem;
+  }
+
+  * {
+    @apply border-slate-200;
+  }
+
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
+
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply text-slate-900 antialiased;
+    margin: 0;
+    background:
+      radial-gradient(circle at 10% 0%, rgba(79, 70, 229, 0.08) 0, transparent 30%),
+      radial-gradient(circle at 90% 90%, rgba(20, 184, 166, 0.08) 0, transparent 35%),
+      rgb(var(--tt-bg));
+    color: rgb(var(--tt-text));
+    font-family: "Inter", "Segoe UI", sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: "Manrope", "Inter", sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer base {
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline-none ring-2 ring-indigo-500 ring-offset-2 ring-offset-white;
   }
 }
 
 @layer components {
+  .page-header {
+    @apply mb-2 flex flex-wrap items-start justify-between gap-3;
+  }
+
+  .page-title {
+    @apply text-3xl font-semibold text-slate-900;
+  }
+
+  .page-subtitle {
+    @apply mt-1 text-sm text-slate-600;
+  }
+
   .btn {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200;
   }
-  
+
   .btn-primary {
-    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+    @apply btn text-white shadow-md shadow-indigo-900/20 hover:-translate-y-0.5;
+    background-image: linear-gradient(135deg, rgb(var(--tt-primary-start)), rgb(var(--tt-primary-end)));
   }
-  
+
   .btn-secondary {
-    @apply btn bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500;
+    @apply btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50;
   }
-  
+
   .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+    @apply btn bg-red-600 text-white hover:bg-red-700;
   }
-  
+
   .btn-outline {
-    @apply btn border-2 border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-500;
+    @apply btn border border-slate-300 bg-transparent text-slate-700 hover:bg-white/70;
   }
-  
+
   .input {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-500;
   }
-  
+
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply mb-1 block text-sm font-medium text-slate-700;
   }
-  
+
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+    @apply rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-sm backdrop-blur;
+  }
+
+  .surface-muted {
+    @apply rounded-2xl bg-slate-100/70;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600;
+  }
+
+  .table-shell {
+    @apply overflow-hidden rounded-2xl border border-slate-200/80 bg-white;
+  }
+
+  .table-head-cell {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+
+  .table-row {
+    @apply border-b border-slate-100 transition hover:bg-slate-50/70;
+  }
+
+  .glass-bar {
+    @apply border border-white/40 bg-white/70 shadow-2xl shadow-slate-900/10 backdrop-blur-xl;
   }
 }

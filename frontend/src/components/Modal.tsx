@@ -30,16 +30,16 @@ export function Modal({ title, onClose, children, maxWidth = 'max-w-md' }: Modal
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 !m-0"
+      className="fixed inset-0 z-50 !m-0 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className={`bg-white rounded-lg shadow-xl ${maxWidth} w-full`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+      <div className={`w-full ${maxWidth} overflow-hidden rounded-2xl border border-white/60 bg-white/95 shadow-2xl shadow-slate-900/20`}>
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded"
+            className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
             aria-label="Close"
           >
             <X className="h-5 w-5" />

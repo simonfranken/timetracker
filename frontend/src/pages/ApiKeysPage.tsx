@@ -55,34 +55,32 @@ export function ApiKeysPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Key className="h-6 w-6 text-gray-600" />
-          <h1 className="text-2xl font-bold text-gray-900">API Keys</h1>
+    <div className="space-y-6 py-2">
+      <div className="page-header sm:flex-nowrap">
+        <div className="max-w-3xl">
+          <h1 className="page-title">API Keys</h1>
+          <p className="page-subtitle">
+            API keys allow agents and external tools to authenticate with the TimeTracker API and MCP endpoint.
+            The raw key is only shown once at creation time — store it securely.
+          </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+          className="btn-primary shrink-0"
         >
           <Plus className="h-4 w-4" />
           Create API Key
         </button>
       </div>
 
-      <p className="text-sm text-gray-500 mb-6">
-        API keys allow agents and external tools to authenticate with the TimeTracker API and MCP endpoint.
-        The raw key is only shown once at creation time — store it securely.
-      </p>
-
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {error instanceof Error ? error.message : "Failed to load API keys"}
         </div>
       )}
 
       {deleteApiKey.isError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {deleteApiKey.error instanceof Error
             ? deleteApiKey.error.message
             : "Failed to revoke API key"}
@@ -90,35 +88,35 @@ export function ApiKeysPage() {
       )}
 
       {isLoading ? (
-        <div className="text-center py-12 text-gray-400 text-sm">Loading...</div>
+        <div className="py-12 text-center text-sm text-slate-400">Loading...</div>
       ) : !apiKeys || apiKeys.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
-          <Key className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 text-sm">No API keys yet. Create one to get started.</p>
+        <div className="card border-dashed py-12 text-center">
+          <Key className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+          <p className="text-sm text-slate-500">No API keys yet. Create one to get started.</p>
         </div>
       ) : (
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="table-shell">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-slate-50/80 border-b border-slate-200">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Name</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Prefix</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Created</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Last Used</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-600">Actions</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-600">Name</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-600">Prefix</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-600">Created</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-600">Last Used</th>
+                <th className="px-4 py-3 text-right font-semibold text-slate-600">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-100">
               {apiKeys.map((key) => (
-                <tr key={key.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{key.name}</td>
+                <tr key={key.id} className="hover:bg-slate-50/70">
+                  <td className="px-4 py-3 font-semibold text-slate-900">{key.name}</td>
                   <td className="px-4 py-3">
-                    <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono text-gray-700">
+                    <code className="rounded bg-slate-100 px-2 py-1 font-mono text-xs text-slate-700">
                       {key.prefix}…
                     </code>
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{formatDate(key.createdAt)}</td>
-                  <td className="px-4 py-3 text-gray-500">{formatDate(key.lastUsedAt)}</td>
+                  <td className="px-4 py-3 text-slate-500">{formatDate(key.createdAt)}</td>
+                  <td className="px-4 py-3 text-slate-500">{formatDate(key.lastUsedAt)}</td>
                   <td className="px-4 py-3 text-right">
                     {revokeConfirmId === key.id ? (
                       <div className="inline-flex items-center gap-2">
@@ -132,17 +130,17 @@ export function ApiKeysPage() {
                         </button>
                         <button
                           onClick={() => setRevokeConfirmId(null)}
-                          className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                          className="text-xs px-2 py-1 border border-slate-300 rounded hover:bg-slate-50 transition-colors"
                         >
                           Cancel
                         </button>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => setRevokeConfirmId(key.id)}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
-                        title="Revoke key"
-                      >
+                        <button
+                          onClick={() => setRevokeConfirmId(key.id)}
+                          className="inline-flex items-center gap-1 rounded px-2 py-1 text-red-600 transition-colors hover:bg-red-50 hover:text-red-800"
+                          title="Revoke key"
+                        >
                         <Trash2 className="h-4 w-4" />
                         <span>Revoke</span>
                       </button>
@@ -157,10 +155,10 @@ export function ApiKeysPage() {
 
       {/* Create API Key Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Create API Key</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-white/70 bg-white/95 shadow-2xl shadow-slate-900/20">
+            <div className="border-b border-slate-200 px-6 py-4">
+              <h2 className="text-lg font-semibold text-slate-900">Create API Key</h2>
             </div>
 
             <div className="px-6 py-5">
@@ -176,18 +174,18 @@ export function ApiKeysPage() {
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">Your new API key</label>
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 text-xs bg-gray-100 border border-gray-200 rounded-lg px-3 py-2 font-mono text-gray-900 break-all">
+                      <code className="flex-1 break-all rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 font-mono text-xs text-slate-900">
                         {createdKey.rawKey}
                       </code>
                       <button
                         onClick={handleCopyKey}
-                        className="flex-shrink-0 p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="flex-shrink-0 rounded-lg border border-slate-300 p-2 transition-colors hover:bg-slate-50"
                         title="Copy to clipboard"
                       >
                         {copiedKey ? (
                           <Check className="h-4 w-4 text-green-600" />
                         ) : (
-                          <Copy className="h-4 w-4 text-gray-500" />
+                          <Copy className="h-4 w-4 text-slate-500" />
                         )}
                       </button>
                     </div>
@@ -197,7 +195,7 @@ export function ApiKeysPage() {
                 /* Name input form */
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="key-name" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="key-name" className="mb-1 block text-sm font-medium text-slate-700">
                       Key name
                     </label>
                     <input
@@ -207,7 +205,7 @@ export function ApiKeysPage() {
                       onChange={(e) => setNewKeyName(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleCreate()}
                       placeholder="e.g. My Claude Agent"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       autoFocus
                     />
                   </div>
@@ -218,10 +216,10 @@ export function ApiKeysPage() {
               )}
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+            <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
               <button
                 onClick={handleCloseCreateModal}
-                className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium transition-colors hover:bg-slate-50"
               >
                 {createdKey ? "Done" : "Cancel"}
               </button>
@@ -229,7 +227,7 @@ export function ApiKeysPage() {
                 <button
                   onClick={handleCreate}
                   disabled={!newKeyName.trim() || createApiKey.isPending}
-                  className="px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {createApiKey.isPending ? "Creating..." : "Create"}
                 </button>

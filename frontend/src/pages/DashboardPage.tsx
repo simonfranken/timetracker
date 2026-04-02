@@ -6,6 +6,7 @@ import { useClientTargets } from "@/hooks/useClientTargets";
 import { useTimer } from "@/contexts/TimerContext";
 import { ProjectColorDot } from "@/components/ProjectColorDot";
 import { StatCard } from "@/components/StatCard";
+import { TargetProgressItem } from "@/components/TargetProgressItem";
 import { TimeEntryFormModal } from "@/components/TimeEntryFormModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import {
@@ -71,17 +72,15 @@ export function DashboardPage() {
   const targetsWithData = targets?.filter(t => t.periods.length > 0) ?? [];
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Overview of your time tracking activity
-        </p>
+    <div className="space-y-6 pb-2">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-subtitle">Overview of your time tracking activity</p>
+        </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={Clock}
           label="Today"
@@ -113,136 +112,98 @@ export function DashboardPage() {
         />
       </div>
 
-      {/* Overtime / Targets Widget */}
       {targetsWithData.length > 0 && (
         <div className="card">
-          <div className="flex items-center gap-2 mb-4">
-            <Target className="h-5 w-5 text-primary-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Targets</h2>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="rounded-xl bg-indigo-100 p-2 text-indigo-700">
+                <Target className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Targets</h2>
+                <p className="text-xs text-slate-500">Current period progress by client</p>
+              </div>
+            </div>
+            <Link to="/clients" className="text-xs font-semibold text-indigo-600 hover:text-indigo-700">
+              Manage targets →
+            </Link>
           </div>
+
           <div className="space-y-3">
             {targetsWithData.map(target => {
-              const balance = target.totalBalanceSeconds;
-              const absBalance = Math.abs(balance);
-              const isOver = balance > 0;
-              const isEven = balance === 0;
-              const currentPeriodTracked = formatDurationHoursMinutes(target.currentPeriodTrackedSeconds);
-              const currentPeriodTarget = formatDurationHoursMinutes(target.currentPeriodTargetSeconds);
-              const periodLabel = target.periodType === 'weekly' ? 'This week' : 'This month';
-
               return (
-                <div
-                  key={target.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{target.clientName}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                        {periodLabel}: {currentPeriodTracked} / {currentPeriodTarget}
-                      </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {target.hasOngoingTimer && (
-                        <span
-                          className="inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse"
-                          title="Timer running — balance updates every 30 s"
-                        />
-                      )}
-                      <p
-                        className={`text-sm font-bold ${
-                          isEven
-                            ? 'text-gray-500'
-                            : isOver
-                            ? 'text-green-600'
-                            : 'text-red-600'
-                        }`}
-                      >
-                        {isEven
-                          ? '±0'
-                          : (isOver ? '+' : '−') + formatDurationHoursMinutes(absBalance)}
-                      </p>
-                    </div>
-                    <p className="text-xs text-gray-400">running balance</p>
-                  </div>
-                </div>
+                <TargetProgressItem key={target.id} target={target} />
               );
             })}
           </div>
-          <p className="mt-3 text-xs text-gray-400">
-            <Link to="/clients" className="text-primary-600 hover:text-primary-700">
-              Manage targets →
-            </Link>
-          </p>
         </div>
       )}
 
-      {/* Recent Activity */}
       <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-900">
             Recent Activity
           </h2>
           <Link
             to="/time-entries"
-            className="text-sm text-primary-600 hover:text-primary-700"
+            className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
           >
             View all →
           </Link>
         </div>
 
         {recentEntries?.entries.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">
+          <p className="py-8 text-center text-slate-500">
             No time entries yet. Start tracking time using the timer below.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="table-shell">
+            <table className="min-w-full">
+              <thead className="bg-slate-50/80">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="table-head-cell">
                     Project
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="table-head-cell">
                     Date
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="table-head-cell">
                     Duration
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="table-head-cell text-right">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white">
                 {recentEntries?.entries.slice(0, 5).map((entry) => (
-                  <tr key={entry.id} className="hover:bg-gray-50">
+                  <tr key={entry.id} className="table-row">
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center">
                         <ProjectColorDot color={entry.project.color} />
                         <div className="ml-2">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-semibold text-slate-900">
                             {entry.project.name}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-slate-500">
                             {entry.project.client.name}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
                       <div>{formatDate(entry.startTime)}</div>
-                      <div className="text-xs text-gray-400">{formatTime(entry.startTime)} – {formatTime(entry.endTime)}</div>
+                      <div className="text-xs text-slate-500">{formatTime(entry.startTime)} – {formatTime(entry.endTime)}</div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-mono">
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-sm text-slate-900">
                       {formatDurationFromDatesHoursMinutes(entry.startTime, entry.endTime, entry.breakMinutes)}
                       {entry.breakMinutes > 0 && (
-                        <span className="text-xs text-gray-400 ml-1">(−{entry.breakMinutes}m break)</span>
+                        <span className="ml-1 text-xs text-slate-500">(−{entry.breakMinutes}m break)</span>
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <button onClick={() => handleOpenModal(entry)} className="p-1.5 text-gray-400 hover:text-gray-600 mr-1"><Edit2 className="h-4 w-4" /></button>
-                      <button onClick={() => setConfirmEntry(entry)} className="p-1.5 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                      <button onClick={() => handleOpenModal(entry)} className="mr-1 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"><Edit2 className="h-4 w-4" /></button>
+                      <button onClick={() => setConfirmEntry(entry)} className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                     </td>
                   </tr>
                 ))}

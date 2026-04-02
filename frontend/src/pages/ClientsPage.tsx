@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Building2, Target, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Building2, X } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import { useClientTargets } from '@/hooks/useClientTargets';
+import { useProjects } from '@/hooks/useProjects';
+import { clientTargetsApi } from '@/api/clientTargets';
 import { Modal } from '@/components/Modal';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { Spinner } from '@/components/Spinner';
-import { formatDurationHoursMinutes } from '@/utils/dateUtils';
+import { TargetProgressItem } from '@/components/TargetProgressItem';
 import type {
   Client,
   CreateClientInput,
   UpdateClientInput,
   ClientTargetWithBalance,
-  CreateCorrectionInput,
 } from '@/types';
 
 const ALL_DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const;
@@ -19,459 +20,98 @@ const DAY_LABELS: Record<string, string> = {
   MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat', SUN: 'Sun',
 };
 
-function balanceLabel(seconds: number): { text: string; color: string } {
-  if (seconds === 0) return { text: '±0', color: 'text-gray-500' };
-  const abs = Math.abs(seconds);
-  const text = (seconds > 0 ? '+' : '−') + formatDurationHoursMinutes(abs);
-  const color = seconds > 0 ? 'text-green-600' : 'text-red-600';
-  return { text, color };
-}
-
 // Inline target panel shown inside each client card
 function ClientTargetPanel({
   target,
-  onCreated,
-  onDeleted,
 }: {
-  client: Client;
   target: ClientTargetWithBalance | undefined;
-  onCreated: (input: {
-    targetHours: number;
-    periodType: 'weekly' | 'monthly';
-    workingDays: string[];
-    startDate: string;
-  }) => Promise<void>;
-  onDeleted: () => Promise<void>;
 }) {
-  const { addCorrection, deleteCorrection, updateTarget } = useClientTargets();
-
-  const [expanded, setExpanded] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState(false);
-
-  // Create/edit form state
-  const [formHours, setFormHours] = useState('');
-  const [formPeriodType, setFormPeriodType] = useState<'weekly' | 'monthly'>('weekly');
-  const [formWorkingDays, setFormWorkingDays] = useState<string[]>(['MON', 'TUE', 'WED', 'THU', 'FRI']);
-  const [formStartDate, setFormStartDate] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
-  const [formSaving, setFormSaving] = useState(false);
-
-  // Correction form state
-  const [showCorrectionForm, setShowCorrectionForm] = useState(false);
-  const [corrDate, setCorrDate] = useState('');
-  const [corrHours, setCorrHours] = useState('');
-  const [corrDesc, setCorrDesc] = useState('');
-  const [corrError, setCorrError] = useState<string | null>(null);
-  const [corrSaving, setCorrSaving] = useState(false);
-
-  const todayIso = new Date().toISOString().split('T')[0];
-
-  const openCreate = () => {
-    setFormHours('');
-    setFormPeriodType('weekly');
-    setFormWorkingDays(['MON', 'TUE', 'WED', 'THU', 'FRI']);
-    setFormStartDate(todayIso);
-    setFormError(null);
-    setEditing(false);
-    setShowForm(true);
-  };
-
-  const openEdit = () => {
-    if (!target) return;
-    setFormHours(String(target.targetHours));
-    setFormPeriodType(target.periodType);
-    setFormWorkingDays([...target.workingDays]);
-    setFormStartDate(target.startDate);
-    setFormError(null);
-    setEditing(true);
-    setShowForm(true);
-  };
-
-  const toggleDay = (day: string) => {
-    setFormWorkingDays(prev =>
-      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day],
-    );
-  };
-
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-    const hours = parseFloat(formHours);
-    if (isNaN(hours) || hours <= 0 || hours > 168) {
-      setFormError(`${formPeriodType === 'weekly' ? 'Weekly' : 'Monthly'} hours must be between 0 and 168`);
-      return;
-    }
-    if (formWorkingDays.length === 0) {
-      setFormError('Select at least one working day');
-      return;
-    }
-    if (!formStartDate) {
-      setFormError('Please select a start date');
-      return;
-    }
-    setFormSaving(true);
-    try {
-      if (editing && target) {
-        await updateTarget.mutateAsync({
-          id: target.id,
-          input: {
-            targetHours: hours,
-            periodType: formPeriodType,
-            workingDays: formWorkingDays,
-            startDate: formStartDate,
-          },
-        });
-      } else {
-        await onCreated({
-          targetHours: hours,
-          periodType: formPeriodType,
-          workingDays: formWorkingDays,
-          startDate: formStartDate,
-        });
-      }
-      setShowForm(false);
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Failed to save');
-    } finally {
-      setFormSaving(false);
-    }
-  };
-
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  const handleDelete = async () => {
-    try {
-      await onDeleted();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete');
-    }
-  };
-
-  const handleAddCorrection = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCorrError(null);
-    if (!target) return;
-    const hours = parseFloat(corrHours);
-    if (isNaN(hours) || hours < -1000 || hours > 1000) {
-      setCorrError('Hours must be between -1000 and 1000');
-      return;
-    }
-    if (!corrDate) {
-      setCorrError('Please select a date');
-      return;
-    }
-    setCorrSaving(true);
-    try {
-      const input: CreateCorrectionInput = { date: corrDate, hours, description: corrDesc || undefined };
-      await addCorrection.mutateAsync({ targetId: target.id, input });
-      setCorrDate('');
-      setCorrHours('');
-      setCorrDesc('');
-      setShowCorrectionForm(false);
-    } catch (err) {
-      setCorrError(err instanceof Error ? err.message : 'Failed to add correction');
-    } finally {
-      setCorrSaving(false);
-    }
-  };
-
-  const handleDeleteCorrection = async (correctionId: string) => {
-    if (!target) return;
-    try {
-      await deleteCorrection.mutateAsync({ targetId: target.id, correctionId });
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete correction');
-    }
-  };
-
-  if (!target && !showForm) {
+  if (!target) {
     return (
-      <div className="mt-3 pt-3 border-t border-gray-100">
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-medium"
-        >
-          <Target className="h-3.5 w-3.5" />
-          Set target
-        </button>
+      <div className="mt-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Target</p>
+        <p className="mt-1 text-sm text-slate-500">No target configured. Use Edit Client to set one.</p>
       </div>
     );
   }
-
-  if (showForm) {
-    const hoursLabel = formPeriodType === 'weekly' ? 'Hours/week' : 'Hours/month';
-    return (
-      <div className="mt-3 pt-3 border-t border-gray-100">
-        <p className="text-xs font-medium text-gray-700 mb-2">
-          {editing ? 'Edit target' : 'Set target'}
-        </p>
-        <form onSubmit={handleFormSubmit} className="space-y-2">
-          {formError && <p className="text-xs text-red-600">{formError}</p>}
-
-          {/* Period type */}
-          <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Period</label>
-            <div className="flex gap-2">
-              {(['weekly', 'monthly'] as const).map(pt => (
-                <label key={pt} className="flex items-center gap-1 text-xs cursor-pointer">
-                  <input
-                    type="radio"
-                    name="periodType"
-                    value={pt}
-                    checked={formPeriodType === pt}
-                    onChange={() => setFormPeriodType(pt)}
-                    className="accent-primary-600"
-                  />
-                  {pt.charAt(0).toUpperCase() + pt.slice(1)}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Hours + Start Date */}
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="block text-xs text-gray-500 mb-0.5">{hoursLabel}</label>
-              <input
-                type="number"
-                value={formHours}
-                onChange={e => setFormHours(e.target.value)}
-                className="input text-sm py-1"
-                placeholder="e.g. 40"
-                min="0.5"
-                max="168"
-                step="0.5"
-                required
-              />
-            </div>
-            <div className="flex-1">
-              <label className="block text-xs text-gray-500 mb-0.5">Start date</label>
-              <input
-                type="date"
-                value={formStartDate}
-                onChange={e => setFormStartDate(e.target.value)}
-                className="input text-sm py-1"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Working days */}
-          <div>
-            <label className="block text-xs text-gray-500 mb-0.5">Working days</label>
-            <div className="flex gap-1 flex-wrap">
-              {ALL_DAYS.map(day => {
-                const active = formWorkingDays.includes(day);
-                return (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() => toggleDay(day)}
-                    className={`text-xs px-2 py-0.5 rounded border font-medium transition-colors ${
-                      active
-                        ? 'bg-primary-600 border-primary-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-600 hover:border-primary-400'
-                    }`}
-                  >
-                    {DAY_LABELS[day]}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="flex gap-2 justify-end">
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="btn-secondary text-xs py-1 px-3"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={formSaving}
-              className="btn-primary text-xs py-1 px-3"
-            >
-              {formSaving ? 'Saving...' : editing ? 'Save' : 'Set target'}
-            </button>
-          </div>
-        </form>
-      </div>
-    );
-  }
-
-  // Target exists — show summary + expandable details
-  const balance = balanceLabel(target!.totalBalanceSeconds);
-  const periodLabel = target!.periodType === 'weekly' ? 'week' : 'month';
 
   return (
-    <div className="mt-3 pt-3 border-t border-gray-100">
-      {/* Target summary row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Target className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-          <span className="text-xs text-gray-600">
-            <span className="font-medium">{target!.targetHours}h</span>/{periodLabel}
-          </span>
-          <span className={`text-xs font-semibold ${balance.color}`}>{balance.text}</span>
-          {target!.hasOngoingTimer && (
-            <span
-              className="inline-block h-2 w-2 rounded-full bg-green-500 animate-pulse"
-              title="Timer running — balance updates every 30 s"
-            />
-          )}
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={openEdit}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded"
-            title="Edit target"
-          >
-            <Edit2 className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="p-1 text-gray-400 hover:text-red-600 rounded"
-            title="Delete target"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={() => setExpanded(v => !v)}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded"
-            title="Show corrections"
-          >
-            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Expanded: corrections list + add form */}
-      {expanded && (
-        <div className="mt-2 space-y-1.5">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Corrections</p>
-
-          {target!.corrections.length === 0 && !showCorrectionForm && (
-            <p className="text-xs text-gray-400">No corrections yet</p>
-          )}
-
-          {target!.corrections.map(c => (
-            <div key={c.id} className="flex items-center justify-between bg-gray-50 rounded px-2 py-1">
-              <div className="text-xs text-gray-700">
-                <span className="font-medium">{c.date}</span>
-                {c.description && <span className="text-gray-500 ml-1">— {c.description}</span>}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className={`text-xs font-semibold ${c.hours >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {c.hours >= 0 ? '+' : ''}{c.hours}h
-                </span>
-                <button
-                  onClick={() => handleDeleteCorrection(c.id)}
-                  className="text-gray-300 hover:text-red-500"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {showCorrectionForm ? (
-            <form onSubmit={handleAddCorrection} className="space-y-1.5 pt-1">
-              {corrError && <p className="text-xs text-red-600">{corrError}</p>}
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="block text-xs text-gray-500 mb-0.5">Date</label>
-                  <input
-                    type="date"
-                    value={corrDate}
-                    onChange={e => setCorrDate(e.target.value)}
-                    className="input text-xs py-1"
-                    required
-                  />
-                </div>
-                <div className="w-24">
-                  <label className="block text-xs text-gray-500 mb-0.5">Hours</label>
-                  <input
-                    type="number"
-                    value={corrHours}
-                    onChange={e => setCorrHours(e.target.value)}
-                    className="input text-xs py-1"
-                    placeholder="+8 / -4"
-                    step="0.5"
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-0.5">Description (optional)</label>
-                <input
-                  type="text"
-                  value={corrDesc}
-                  onChange={e => setCorrDesc(e.target.value)}
-                  className="input text-xs py-1"
-                  placeholder="e.g. Public holiday"
-                  maxLength={255}
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowCorrectionForm(false)}
-                  className="btn-secondary text-xs py-1 px-3"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={corrSaving}
-                  className="btn-primary text-xs py-1 px-3"
-                >
-                  {corrSaving ? 'Saving...' : 'Add'}
-                </button>
-              </div>
-            </form>
-          ) : (
-            <button
-              onClick={() => setShowCorrectionForm(true)}
-              className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium pt-0.5"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add correction
-            </button>
-          )}
-        </div>
-      )}
-
-      {showDeleteConfirm && (
-        <ConfirmModal
-          title="Delete Target"
-          message="Delete this target? All corrections will also be deleted."
-          onConfirm={handleDelete}
-          onClose={() => setShowDeleteConfirm(false)}
-        />
-      )}
+    <div className="mt-4">
+      <TargetProgressItem
+        target={target}
+        showClientName={false}
+        heading="Target"
+        containerClassName="rounded-xl bg-slate-50/70 p-3"
+      />
     </div>
   );
 }
 
 export function ClientsPage() {
   const { clients, isLoading, createClient, updateClient, deleteClient } = useClients();
-  const { targets, createTarget, deleteTarget } = useClientTargets();
+  const { targets, createTarget, updateTarget, deleteTarget, addCorrection, deleteCorrection } = useClientTargets();
+  const { projects } = useProjects();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [formData, setFormData] = useState<CreateClientInput>({ name: '', description: '' });
+  const [targetEnabled, setTargetEnabled] = useState(false);
+  const [targetHours, setTargetHours] = useState('');
+  const [targetPeriodType, setTargetPeriodType] = useState<'weekly' | 'monthly'>('weekly');
+  const [targetWorkingDays, setTargetWorkingDays] = useState<string[]>(['MON', 'TUE', 'WED', 'THU', 'FRI']);
+  const [targetStartDate, setTargetStartDate] = useState('');
+  const [targetCorrections, setTargetCorrections] = useState<Array<{
+    id?: string;
+    date: string;
+    hours: string;
+    description: string;
+  }>>([]);
   const [error, setError] = useState<string | null>(null);
+
+  const todayIso = new Date().toISOString().split('T')[0];
+
+  const toggleTargetDay = (day: string) => {
+    setTargetWorkingDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
+    );
+  };
 
   const handleOpenModal = (client?: Client) => {
     if (client) {
       setEditingClient(client);
       setFormData({ name: client.name, description: client.description || '' });
+      const existingTarget = targets?.find((target) => target.clientId === client.id);
+      if (existingTarget) {
+        setTargetEnabled(true);
+        setTargetHours(String(existingTarget.targetHours));
+        setTargetPeriodType(existingTarget.periodType);
+        setTargetWorkingDays([...existingTarget.workingDays]);
+        setTargetStartDate(existingTarget.startDate);
+        setTargetCorrections(
+          existingTarget.corrections.map((correction) => ({
+            id: correction.id,
+            date: correction.date,
+            hours: String(correction.hours),
+            description: correction.description ?? '',
+          })),
+        );
+      } else {
+        setTargetEnabled(false);
+        setTargetHours('');
+        setTargetPeriodType('weekly');
+        setTargetWorkingDays(['MON', 'TUE', 'WED', 'THU', 'FRI']);
+        setTargetStartDate(todayIso);
+        setTargetCorrections([]);
+      }
     } else {
       setEditingClient(null);
       setFormData({ name: '', description: '' });
+      setTargetEnabled(false);
+      setTargetHours('');
+      setTargetPeriodType('weekly');
+      setTargetWorkingDays(['MON', 'TUE', 'WED', 'THU', 'FRI']);
+      setTargetStartDate(todayIso);
+      setTargetCorrections([]);
     }
     setError(null);
     setIsModalOpen(true);
@@ -481,6 +121,12 @@ export function ClientsPage() {
     setIsModalOpen(false);
     setEditingClient(null);
     setFormData({ name: '', description: '' });
+    setTargetEnabled(false);
+    setTargetHours('');
+    setTargetPeriodType('weekly');
+    setTargetWorkingDays(['MON', 'TUE', 'WED', 'THU', 'FRI']);
+    setTargetStartDate(todayIso);
+    setTargetCorrections([]);
     setError(null);
   };
 
@@ -493,15 +139,106 @@ export function ClientsPage() {
       return;
     }
 
+    if (targetEnabled) {
+      const parsedHours = parseFloat(targetHours);
+      if (isNaN(parsedHours) || parsedHours <= 0 || parsedHours > 168) {
+        setError(`${targetPeriodType === 'weekly' ? 'Weekly' : 'Monthly'} hours must be between 0 and 168`);
+        return;
+      }
+      if (targetWorkingDays.length === 0) {
+        setError('Select at least one working day for target');
+        return;
+      }
+      if (!targetStartDate) {
+        setError('Select a target start date');
+        return;
+      }
+    }
+
     try {
+      let clientId: string;
+
       if (editingClient) {
         await updateClient.mutateAsync({
           id: editingClient.id,
           input: formData as UpdateClientInput,
         });
+        clientId = editingClient.id;
       } else {
-        await createClient.mutateAsync(formData);
+        const createdClient = await createClient.mutateAsync(formData);
+        clientId = createdClient.id;
       }
+
+      const existingTarget = targets?.find((target) => target.clientId === clientId);
+
+      if (targetEnabled) {
+        const payload = {
+          targetHours: parseFloat(targetHours),
+          periodType: targetPeriodType,
+          workingDays: targetWorkingDays,
+          startDate: targetStartDate,
+        };
+
+        if (existingTarget) {
+          await updateTarget.mutateAsync({ id: existingTarget.id, input: payload });
+        } else {
+          await createTarget.mutateAsync({ clientId, ...payload });
+        }
+
+        const refreshTargets = await clientTargetsApi.getAll();
+        const currentTarget = refreshTargets.find((target) => target.clientId === clientId);
+
+        if (currentTarget) {
+          const existingCorrectionsById = new Map(
+            currentTarget.corrections.map((correction) => [correction.id, correction]),
+          );
+
+          for (const correction of targetCorrections) {
+            const parsedHours = parseFloat(correction.hours);
+            if (!correction.date || isNaN(parsedHours)) {
+              continue;
+            }
+
+            const existing = correction.id ? existingCorrectionsById.get(correction.id) : undefined;
+
+            if (!existing) {
+              await addCorrection.mutateAsync({
+                targetId: currentTarget.id,
+                input: {
+                  date: correction.date,
+                  hours: parsedHours,
+                  description: correction.description || undefined,
+                },
+              });
+              continue;
+            }
+
+            const descriptionMatches = (existing.description ?? '') === correction.description;
+            if (existing.date === correction.date && existing.hours === parsedHours && descriptionMatches) {
+              existingCorrectionsById.delete(correction.id as string);
+              continue;
+            }
+
+            await deleteCorrection.mutateAsync({ targetId: currentTarget.id, correctionId: existing.id });
+            await addCorrection.mutateAsync({
+              targetId: currentTarget.id,
+              input: {
+                date: correction.date,
+                hours: parsedHours,
+                description: correction.description || undefined,
+              },
+            });
+            existingCorrectionsById.delete(correction.id as string);
+          }
+
+          for (const staleCorrection of existingCorrectionsById.values()) {
+            await deleteCorrection.mutateAsync({ targetId: currentTarget.id, correctionId: staleCorrection.id });
+          }
+        }
+      } else if (existingTarget) {
+        await deleteTarget.mutateAsync(existingTarget.id);
+      }
+
       handleCloseModal();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save client');
@@ -523,13 +260,17 @@ export function ClientsPage() {
     return <Spinner />;
   }
 
+  const projectCountByClient = (projects ?? []).reduce<Record<string, number>>((acc, project) => {
+    acc[project.clientId] = (acc[project.clientId] ?? 0) + 1;
+    return acc;
+  }, {});
+
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="page-title">Clients</h1>
+          <p className="page-subtitle">
             Manage your clients and customers
           </p>
         </div>
@@ -542,12 +283,11 @@ export function ClientsPage() {
         </button>
       </div>
 
-      {/* Clients List */}
       {clients?.length === 0 ? (
         <div className="card text-center py-12">
-          <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">No clients yet</h3>
-          <p className="mt-1 text-sm text-gray-600">
+          <Building2 className="mx-auto mb-4 h-12 w-12 text-slate-400" />
+          <h3 className="text-lg font-semibold text-slate-900">No clients yet</h3>
+          <p className="mt-1 text-sm text-slate-600">
             Get started by adding your first client
           </p>
           <button
@@ -562,15 +302,20 @@ export function ClientsPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {clients?.map((client) => {
             const target = targets?.find(t => t.clientId === client.id);
+            const projectCount = projectCountByClient[client.id] ?? 0;
+
             return (
-              <div key={client.id} className="card">
+              <div key={client.id} className="card border-slate-200/90 bg-gradient-to-br from-white via-white to-indigo-50/40">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-medium text-gray-900 truncate">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-lg font-semibold text-slate-900">
                       {client.name}
                     </h3>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="chip bg-indigo-50 text-indigo-700">{projectCount} {projectCount === 1 ? 'project' : 'projects'}</span>
+                    </div>
                     {client.description && (
-                      <p className="mt-1 text-sm text-gray-600 line-clamp-2">
+                      <p className="mt-1 line-clamp-2 text-sm text-slate-600">
                         {client.description}
                       </p>
                     )}
@@ -578,42 +323,26 @@ export function ClientsPage() {
                   <div className="flex space-x-2 ml-4">
                     <button
                       onClick={() => handleOpenModal(client)}
-                      className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                      className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => setConfirmClient(client)}
-                      className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50"
+                      className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
 
-                <ClientTargetPanel
-                  client={client}
-                  target={target}
-                  onCreated={async ({ targetHours, periodType, workingDays, startDate }) => {
-                    await createTarget.mutateAsync({
-                      clientId: client.id,
-                      targetHours,
-                      periodType,
-                      workingDays,
-                      startDate,
-                    });
-                  }}
-                  onDeleted={async () => {
-                    if (target) await deleteTarget.mutateAsync(target.id);
-                  }}
-                />
+                <ClientTargetPanel target={target} />
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Modal */}
       {isModalOpen && (
         <Modal
           title={editingClient ? 'Edit Client' : 'Add Client'}
@@ -621,7 +350,7 @@ export function ClientsPage() {
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+              <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
                 {error}
               </div>
             )}
@@ -647,6 +376,181 @@ export function ClientsPage() {
                 rows={3}
                 placeholder="Enter description"
               />
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-semibold text-slate-800">Target Settings</p>
+                <label className="flex items-center gap-2 text-sm text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={targetEnabled}
+                    onChange={(event) => setTargetEnabled(event.target.checked)}
+                    className="accent-indigo-600"
+                  />
+                  Enabled
+                </label>
+              </div>
+
+              {targetEnabled ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="label">Target Hours</label>
+                      <input
+                        type="number"
+                        value={targetHours}
+                        onChange={(event) => setTargetHours(event.target.value)}
+                        className="input"
+                        min="0.5"
+                        max="168"
+                        step="0.5"
+                        placeholder="e.g. 40"
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Start Date</label>
+                      <input
+                        type="date"
+                        value={targetStartDate}
+                        onChange={(event) => setTargetStartDate(event.target.value)}
+                        className="input"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="label">Period Type</label>
+                    <div className="flex gap-2">
+                      {(['weekly', 'monthly'] as const).map((periodType) => (
+                        <button
+                          key={periodType}
+                          type="button"
+                          onClick={() => setTargetPeriodType(periodType)}
+                          className={`rounded-xl border px-3 py-1.5 text-sm font-medium transition ${
+                            targetPeriodType === periodType
+                              ? 'border-indigo-600 bg-indigo-600 text-white'
+                              : 'border-slate-300 bg-white text-slate-600 hover:border-indigo-400'
+                          }`}
+                        >
+                          {periodType.charAt(0).toUpperCase() + periodType.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="label">Working Days</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ALL_DAYS.map((day) => {
+                        const active = targetWorkingDays.includes(day);
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => toggleTargetDay(day)}
+                            className={`rounded-lg border px-2 py-1 text-xs font-semibold transition ${
+                              active
+                                ? 'border-indigo-600 bg-indigo-600 text-white'
+                                : 'border-slate-300 bg-white text-slate-600 hover:border-indigo-400'
+                            }`}
+                          >
+                            {DAY_LABELS[day]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <label className="label mb-0">Balance Corrections</label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTargetCorrections((prev) => [
+                            ...prev,
+                            { date: targetStartDate || todayIso, hours: '', description: '' },
+                          ])
+                        }
+                        className="text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+                      >
+                        + Add
+                      </button>
+                    </div>
+
+                    {targetCorrections.length === 0 ? (
+                      <p className="text-sm text-slate-500">No corrections configured.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {targetCorrections.map((correction, index) => (
+                          <div key={correction.id ?? `new-${index}`} className="rounded-lg border border-slate-200 bg-white p-2">
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_110px]">
+                              <input
+                                type="date"
+                                value={correction.date}
+                                onChange={(event) => {
+                                  const date = event.target.value;
+                                  setTargetCorrections((prev) =>
+                                    prev.map((item, itemIndex) =>
+                                      itemIndex === index ? { ...item, date } : item,
+                                    ),
+                                  );
+                                }}
+                                className="input"
+                              />
+                              <input
+                                type="number"
+                                value={correction.hours}
+                                onChange={(event) => {
+                                  const hours = event.target.value;
+                                  setTargetCorrections((prev) =>
+                                    prev.map((item, itemIndex) =>
+                                      itemIndex === index ? { ...item, hours } : item,
+                                    ),
+                                  );
+                                }}
+                                className="input"
+                                step="0.5"
+                                placeholder="Hours"
+                              />
+                            </div>
+                            <div className="mt-2 flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={correction.description}
+                                onChange={(event) => {
+                                  const description = event.target.value;
+                                  setTargetCorrections((prev) =>
+                                    prev.map((item, itemIndex) =>
+                                      itemIndex === index ? { ...item, description } : item,
+                                    ),
+                                  );
+                                }}
+                                className="input"
+                                placeholder="Description (optional)"
+                                maxLength={255}
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setTargetCorrections((prev) => prev.filter((_, itemIndex) => itemIndex !== index))
+                                }
+                                className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                                title="Remove correction"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">No target will be set for this client.</p>
+              )}
             </div>
 
             <div className="flex justify-end space-x-3 pt-4">
