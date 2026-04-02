@@ -15,6 +15,13 @@
       "headers": {
         "X-Goog-Api-Key": "{file:.stitch-token}"
       }
+    },
+    "browsermcp": {
+      "type": "local",
+      "command": [
+        "npx",
+        "@browsermcp/mcp@latest"
+      ]
     }
   }
 }
