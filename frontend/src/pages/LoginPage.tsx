@@ -4,43 +4,43 @@ export function LoginPage() {
   const { login } = useAuth();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+      <div className="pointer-events-none absolute -top-20 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-300/30 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-72 w-72 rounded-full bg-teal-300/20 blur-3xl" />
+
+      <div className="relative w-full max-w-md space-y-7 rounded-3xl border border-white/60 bg-white/90 p-8 shadow-2xl shadow-slate-900/10 backdrop-blur">
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 flex items-center justify-center drop-shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center">
             <img src="/icon.svg" alt="TimeTracker Logo" className="h-16 w-16" />
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">TimeTracker</h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <h2 className="mt-5 text-3xl font-semibold text-slate-900">TimeTracker</h2>
+          <p className="mt-2 text-sm text-slate-600">
             Track your time efficiently across multiple projects and clients
           </p>
         </div>
 
-        <div className="mt-8">
-          <button
-            onClick={login}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-          >
+        <div>
+          <button onClick={login} className="btn-primary w-full justify-center py-3">
             Sign in with SSO
           </button>
-          <p className="mt-4 text-xs text-center text-gray-500">
+          <p className="mt-4 text-center text-xs text-slate-500">
             Secure authentication via OpenID Connect
           </p>
         </div>
 
-        <div className="mt-8 border-t border-gray-200 pt-8">
+        <div className="border-t border-slate-200 pt-6">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-gray-900">Simple</div>
-              <div className="text-xs text-gray-500">Start/Stop Timer</div>
+              <div className="text-2xl font-semibold text-slate-900">Simple</div>
+              <div className="text-xs text-slate-500">Start/Stop Timer</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900">Organized</div>
-              <div className="text-xs text-gray-500">Clients & Projects</div>
+              <div className="text-2xl font-semibold text-slate-900">Organized</div>
+              <div className="text-xs text-slate-500">Clients & Projects</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900">Detailed</div>
-              <div className="text-xs text-gray-500">Time Reports</div>
+              <div className="text-2xl font-semibold text-slate-900">Detailed</div>
+              <div className="text-xs text-slate-500">Time Reports</div>
             </div>
           </div>
         </div>

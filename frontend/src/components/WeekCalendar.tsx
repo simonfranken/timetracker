@@ -251,11 +251,11 @@ export function WeekCalendar({
   const columnTemplate = "68px repeat(7, minmax(0, 1fr))";
 
   return (
-    <div className="h-full min-h-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
+    <div className="h-full min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="h-full min-h-0 overflow-x-auto">
         <div className="min-w-[960px] h-full min-h-0 flex flex-col">
           <div className="grid shrink-0" style={{ gridTemplateColumns: columnTemplate }}>
-            <div className="border-b border-r border-gray-200 bg-gray-50" />
+            <div className="border-b border-r border-slate-200 bg-slate-50" />
             {Array.from({ length: 7 }, (_, dayIndex) => {
               const dayDate = addDays(weekStart, dayIndex);
               const isToday = isSameDay(dayDate, today);
@@ -264,19 +264,19 @@ export function WeekCalendar({
               return (
                 <div
                   key={`header-${dayIndex}`}
-                  className={`border-b border-r border-gray-200 px-3 py-2 ${
+                  className={`border-b border-r border-slate-200 px-3 py-2 ${
                     isToday
-                      ? "bg-primary-50"
+                      ? "bg-indigo-50"
                       : isWeekend
-                        ? "bg-gray-50"
+                        ? "bg-slate-50"
                         : "bg-white"
                   }`}
                 >
-                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     {format(dayDate, "EEE")}
                   </div>
-                  <div className="text-base font-semibold text-gray-900">{format(dayDate, "d")}</div>
-                  <div className="text-xs text-gray-500">{dayTotals?.[dayIndex] ?? "0h"}</div>
+                  <div className="text-base font-semibold text-slate-900">{format(dayDate, "d")}</div>
+                  <div className="text-xs text-slate-500">{dayTotals?.[dayIndex] ?? "0h"}</div>
                 </div>
               );
             })}
@@ -284,7 +284,7 @@ export function WeekCalendar({
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="grid" style={{ gridTemplateColumns: columnTemplate }}>
-              <div className="relative overflow-hidden border-r border-gray-200 bg-gray-50" style={{ height: `${gridHeight}px` }}>
+              <div className="relative overflow-hidden border-r border-slate-200 bg-slate-50" style={{ height: `${gridHeight}px` }}>
                 {slots.map((hour) => {
                   const top = ((hour - visibleStartHour) / totalRangeHours) * gridHeight;
                   const isHourMark = Number.isInteger(hour);
@@ -298,7 +298,7 @@ export function WeekCalendar({
                     >
                       {isHourMark && hour < 24 && (
                         <span
-                          className="absolute right-2 text-[11px] font-medium leading-4 text-gray-500"
+                          className="absolute right-2 text-[11px] font-medium leading-4 text-slate-500"
                           style={{ top: `${labelOffsetTop}px` }}
                         >
                           {format(new Date(2000, 0, 1, hour, 0), "HH:mm")}
@@ -318,7 +318,7 @@ export function WeekCalendar({
                 return (
                   <div
                     key={`column-${dayIndex}`}
-                    className={`relative border-r border-gray-200 ${isWeekend ? "bg-gray-50/60" : "bg-white"}`}
+                    className={`relative border-r border-slate-200 ${isWeekend ? "bg-slate-50/60" : "bg-white"}`}
                     style={{ height: `${gridHeight}px` }}
                   >
                     {slots.map((hour) => {
@@ -328,7 +328,7 @@ export function WeekCalendar({
                         <div
                           key={`line-${dayIndex}-${hour}`}
                           className={`absolute left-0 right-0 border-t ${
-                            isHourMark ? "border-gray-200" : "border-gray-100"
+                            isHourMark ? "border-slate-200" : "border-slate-100"
                           }`}
                           style={{ top: `${top}px` }}
                         />
@@ -340,7 +340,7 @@ export function WeekCalendar({
                       return (
                         <div
                           key={`hidden-${dayIndex}-${indicator.startHour}`}
-                          className="absolute right-1 z-30 rounded bg-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-600"
+                          className="absolute right-1 z-30 rounded bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600"
                           style={{ top: `${top + 2}px` }}
                         >
                           +{indicator.hiddenCount} more
@@ -366,7 +366,7 @@ export function WeekCalendar({
                         <button
                           key={block.id}
                           type="button"
-                          className="absolute z-20 flex flex-col items-start rounded-md border border-black/10 px-2 py-1 text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                          className="absolute z-20 flex flex-col items-start rounded-md border border-black/10 px-2 py-1 text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                           style={{
                             top: `${top}px`,
                             left: `calc(${block.leftPercent}% + 2px)`,

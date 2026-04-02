@@ -48,23 +48,23 @@ export function TimeEntriesPage() {
 
   return (
     <div className={isCalendarView ? "flex h-full min-h-0 flex-col gap-5 overflow-hidden" : "space-y-5"}>
-      <div className="flex items-center justify-between shrink-0">
+      <div className="page-header shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Time Entries</h1>
-          <p className="text-sm text-gray-600">Manage your tracked time</p>
+          <h1 className="page-title">Time Entries</h1>
+          <p className="page-subtitle">Manage your tracked time</p>
         </div>
         <button type="button" onClick={() => handleOpenModal()} className="btn-primary">
           <Plus className="mr-2 h-5 w-5" /> Add Entry
         </button>
       </div>
 
-      <div className="inline-flex shrink-0 self-start rounded-lg border border-gray-200 bg-white p-1">
+      <div className="inline-flex shrink-0 self-start rounded-2xl border border-slate-200 bg-white p-1">
         <button
           type="button"
-          className={`inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition ${
+          className={`inline-flex items-center rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
             viewMode === "calendar"
-              ? "bg-primary-50 text-primary-700"
-              : "text-gray-600 hover:text-gray-900"
+              ? "bg-indigo-100 text-indigo-700"
+              : "text-slate-600 hover:text-slate-900"
           }`}
           onClick={() => setViewMode("calendar")}
         >
@@ -72,10 +72,10 @@ export function TimeEntriesPage() {
         </button>
         <button
           type="button"
-          className={`inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition ${
+          className={`inline-flex items-center rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
             viewMode === "list"
-              ? "bg-primary-50 text-primary-700"
-              : "text-gray-600 hover:text-gray-900"
+              ? "bg-indigo-100 text-indigo-700"
+              : "text-slate-600 hover:text-slate-900"
           }`}
           onClick={() => setViewMode("list")}
         >
@@ -84,31 +84,31 @@ export function TimeEntriesPage() {
       </div>
 
       {viewMode === "list" ? (
-        <div className="card overflow-hidden">
+        <div className="table-shell">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full">
+              <thead className="bg-slate-50/80">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                  <th className="table-head-cell">
                     Date
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                  <th className="table-head-cell">
                     Project
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
+                  <th className="table-head-cell">
                     Duration
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">
+                  <th className="table-head-cell text-right">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
+              <tbody className="bg-white">
                 {data?.entries.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-gray-50">
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                  <tr key={entry.id} className="table-row">
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-900">
                       <div>{formatDate(entry.startTime)}</div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-slate-500">
                         {formatTime(entry.startTime)} - {formatTime(entry.endTime)}
                       </div>
                     </td>
@@ -116,33 +116,33 @@ export function TimeEntriesPage() {
                       <div className="flex items-center">
                         <ProjectColorDot color={entry.project.color} />
                         <div className="ml-2">
-                          <div className="text-sm font-medium text-gray-900">{entry.project.name}</div>
-                          <div className="text-xs text-gray-500">{entry.project.client.name}</div>
+                          <div className="text-sm font-semibold text-slate-900">{entry.project.name}</div>
+                          <div className="text-xs text-slate-500">{entry.project.client.name}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm font-mono text-gray-900">
+                    <td className="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-900">
                       {formatDurationFromDatesHoursMinutes(
                         entry.startTime,
                         entry.endTime,
                         entry.breakMinutes,
                       )}
                       {entry.breakMinutes > 0 && (
-                        <span className="ml-1 text-xs text-gray-400">(-{entry.breakMinutes}m)</span>
+                        <span className="ml-1 text-xs text-slate-500">(-{entry.breakMinutes}m)</span>
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
                       <button
                         type="button"
                         onClick={() => handleOpenModal(entry)}
-                        className="mr-1 p-1.5 text-gray-400 hover:text-gray-600"
+                        className="mr-1 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmEntry(entry)}
-                        className="p-1.5 text-gray-400 hover:text-red-600"
+                        className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -153,7 +153,7 @@ export function TimeEntriesPage() {
             </table>
           </div>
           {data?.entries.length === 0 && (
-            <div className="py-8 text-center text-gray-500">No time entries yet</div>
+            <div className="py-8 text-center text-slate-500">No time entries yet</div>
           )}
         </div>
       ) : (

@@ -175,7 +175,7 @@ export function CalendarPage({ weekStart: initialWeekStart }: CalendarPageProps)
 
   if (weekEntriesQuery.error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
         Failed to load calendar entries.
       </div>
     );
@@ -185,8 +185,8 @@ export function CalendarPage({ weekStart: initialWeekStart }: CalendarPageProps)
     <div className="flex h-full min-h-0 flex-col gap-4">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-gray-500">Week</div>
-          <div className="text-lg font-semibold text-gray-900">{weekLabel}</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Week</div>
+          <div className="text-lg font-semibold text-slate-900">{weekLabel}</div>
         </div>
 
         <div className="flex items-center gap-2">

@@ -8,29 +8,29 @@ interface StatCardProps {
 }
 
 const colorClasses: Record<NonNullable<StatCardProps['color']>, string> = {
-  blue: 'bg-blue-50 text-blue-600',
-  green: 'bg-green-50 text-green-600',
-  purple: 'bg-purple-50 text-purple-600',
-  orange: 'bg-orange-50 text-orange-600',
+  blue: 'bg-indigo-100 text-indigo-700',
+  green: 'bg-emerald-100 text-emerald-700',
+  purple: 'bg-cyan-100 text-cyan-700',
+  orange: 'bg-amber-100 text-amber-700',
 };
 
 export function StatCard({ icon: Icon, label, value, color, indicator }: StatCardProps) {
   return (
-    <div className="card p-4">
+    <div className="card p-5">
       <div className="flex items-center">
-        <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
-          <Icon className="h-6 w-6" />
+        <div className={`rounded-xl p-3 ${colorClasses[color]}`}>
+          <Icon className="h-5 w-5" />
         </div>
         <div className="ml-4 flex-1">
-          <p className="text-sm font-medium text-gray-600">{label}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
           <div className="flex items-center gap-2">
             {indicator && (
               <span
-                className="inline-block h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse"
+                className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"
                 title="Timer running"
               />
             )}
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
+            <p className="text-2xl font-semibold text-slate-900">{value}</p>
           </div>
         </div>
       </div>

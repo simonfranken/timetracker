@@ -41,25 +41,22 @@ export function StatisticsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Statistics</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="page-title">Statistics</h1>
+        <p className="page-subtitle">
           View your working hours with filters
         </p>
       </div>
 
-      {/* Filters */}
       <div className="card">
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="h-5 w-5 text-primary-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+        <div className="mb-4 flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-indigo-600" />
+          <h2 className="text-lg font-semibold text-slate-900">Filters</h2>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Date Range */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               <span className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
                 From Date
@@ -79,7 +76,7 @@ export function StatisticsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               <span className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
                 To Date
@@ -98,9 +95,8 @@ export function StatisticsPage() {
             />
           </div>
 
-          {/* Client Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               <span className="flex items-center gap-1">
                 <Building2 className="h-4 w-4" />
                 Client
@@ -122,9 +118,8 @@ export function StatisticsPage() {
             </select>
           </div>
 
-          {/* Project Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               <span className="flex items-center gap-1">
                 <FolderOpen className="h-4 w-4" />
                 Project
@@ -147,28 +142,26 @@ export function StatisticsPage() {
           </div>
         </div>
 
-        {/* Clear Filters Button */}
         {(filters.startDate ||
           filters.endDate ||
           filters.clientId ||
           filters.projectId) && (
           <div className="mt-4">
-            <button onClick={clearFilters} className="btn btn-secondary">
+            <button onClick={clearFilters} className="btn-secondary">
               Clear Filters
             </button>
           </div>
         )}
       </div>
 
-      {/* Total Hours Display */}
-      <div className="card bg-gradient-to-br from-primary-50 to-primary-100 border-primary-200">
+      <div className="card border-indigo-100 bg-gradient-to-br from-indigo-50 to-cyan-50">
         <div className="flex items-center">
           <div className="flex flex-col grow">
             <div>
-              <p className="text-sm font-medium text-primary-700">
+              <p className="text-sm font-semibold text-indigo-700">
                 Total Working Time
               </p>
-              <p className="text-4xl font-bold text-primary-900 mt-1">
+              <p className="mt-1 text-4xl font-semibold text-indigo-950">
                 {isLoading ? (
                   <span className="text-2xl">Loading...</span>
                 ) : (
@@ -176,38 +169,37 @@ export function StatisticsPage() {
                 )}
               </p>
             </div>
-            <p className="mt-2 text-sm text-primary-600">
+            <p className="mt-2 text-sm text-indigo-700">
               {statistics?.entryCount || 0} time entries
             </p>
           </div>
-          <div className="p-4 bg-primary-200 rounded-full">
-            <Clock className="h-8 w-8 text-primary-700" />
+          <div className="rounded-2xl bg-white/80 p-4">
+            <Clock className="h-8 w-8 text-indigo-700" />
           </div>
         </div>
       </div>
 
-      {/* Breakdown by Project */}
       {statistics && statistics.byProject.length > 0 && (
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <h3 className="mb-4 text-lg font-semibold text-slate-900">
             By Project
           </h3>
           <div className="space-y-3">
             {statistics.byProject.map((project) => (
               <div
                 key={project.projectId}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                className="flex items-center justify-between rounded-2xl bg-slate-100/80 p-3"
               >
                 <div className="flex items-center gap-3">
                    <ProjectColorDot color={project.projectColor} />
-                   <span className="font-medium text-gray-900">
+                   <span className="font-semibold text-slate-900">
                     {project.projectName}
                   </span>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-slate-500">
                     ({project.entryCount} entries)
                   </span>
                 </div>
-                <span className="font-mono font-semibold text-gray-900">
+                <span className="font-mono font-semibold text-slate-900">
                   {formatDurationHoursMinutes(project.totalSeconds)}
                 </span>
               </div>
@@ -216,28 +208,27 @@ export function StatisticsPage() {
         </div>
       )}
 
-      {/* Breakdown by Client */}
       {statistics && statistics.byClient.length > 0 && (
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <h3 className="mb-4 text-lg font-semibold text-slate-900">
             By Client
           </h3>
           <div className="space-y-3">
             {statistics.byClient.map((client) => (
               <div
                 key={client.clientId}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                className="flex items-center justify-between rounded-2xl bg-slate-100/80 p-3"
               >
                 <div className="flex items-center gap-3">
-                  <Building2 className="h-4 w-4 text-gray-400" />
-                  <span className="font-medium text-gray-900">
+                  <Building2 className="h-4 w-4 text-slate-400" />
+                  <span className="font-semibold text-slate-900">
                     {client.clientName}
                   </span>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-slate-500">
                     ({client.entryCount} entries)
                   </span>
                 </div>
-                <span className="font-mono font-semibold text-gray-900">
+                <span className="font-mono font-semibold text-slate-900">
                   {formatDurationHoursMinutes(client.totalSeconds)}
                 </span>
               </div>
@@ -246,14 +237,13 @@ export function StatisticsPage() {
         </div>
       )}
 
-      {/* Empty State */}
       {!isLoading && statistics && statistics.entryCount === 0 && (
         <div className="card text-center py-12">
-          <BarChart3 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">
+          <BarChart3 className="mx-auto mb-4 h-12 w-12 text-slate-300" />
+          <h3 className="text-lg font-semibold text-slate-900">
             No data available
           </h3>
-          <p className="text-gray-500 mt-1">
+          <p className="mt-1 text-slate-500">
             No time entries found for the selected filters.
           </p>
         </div>

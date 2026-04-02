@@ -107,11 +107,12 @@ export function ProjectsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
+          <h1 className="page-title">Projects</h1>
+          <p className="page-subtitle">Organize workstreams across your clients</p>
         </div>
         <div className="card text-center py-12">
-          <FolderOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="mt-2 text-gray-600">Please create a client first.</p>
+          <FolderOpen className="mx-auto mb-4 h-12 w-12 text-slate-400" />
+          <p className="mt-2 text-slate-600">Please create a client first.</p>
         </div>
       </div>
     );
@@ -119,30 +120,43 @@ export function ProjectsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Projects</h1>
+          <p className="page-subtitle">Organize workstreams across your clients</p>
+        </div>
         <button onClick={() => handleOpenModal()} className="btn-primary">
           <Plus className="h-5 w-5 mr-2" />
           Add Project
         </button>
       </div>
 
+      <div className="surface-muted flex items-center justify-between px-4 py-2.5">
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Project Portfolio</span>
+        <span className="chip bg-white text-slate-700">{projects?.length ?? 0} total</span>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {projects?.map((project) => (
-          <div key={project.id} className="card">
+          <div key={project.id} className="card border-slate-200/90 bg-gradient-to-br from-white via-white to-cyan-50/40">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
                   <ProjectColorDot color={project.color} size="w-4 h-4" />
-                  <h3 className="font-medium text-gray-900 truncate">{project.name}</h3>
+                  <h3 className="truncate text-base font-semibold text-slate-900">{project.name}</h3>
                 </div>
-                <p className="mt-1 text-sm text-gray-500">{project.client.name}</p>
+                <p className="mt-1 text-sm text-slate-500">{project.client.name}</p>
+                {project.description ? (
+                  <p className="mt-2 line-clamp-2 text-sm text-slate-600">{project.description}</p>
+                ) : (
+                  <p className="mt-2 text-sm text-slate-400">No description yet</p>
+                )}
               </div>
               <div className="flex space-x-1 ml-2">
-                <button onClick={() => handleOpenModal(project)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded">
+                <button onClick={() => handleOpenModal(project)} className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
                   <Edit2 className="h-4 w-4" />
                 </button>
-                <button onClick={() => setConfirmProject(project)} className="p-1.5 text-gray-400 hover:text-red-600 rounded">
+                <button onClick={() => setConfirmProject(project)} className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600">
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
@@ -156,7 +170,7 @@ export function ProjectsPage() {
           title={editingProject ? 'Edit Project' : 'Add Project'}
           onClose={handleCloseModal}
         >
-          {error && <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
+          {error && <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</div>}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label">Project Name</label>
@@ -174,7 +188,7 @@ export function ProjectsPage() {
               <label className="label">Color</label>
               <div className="flex flex-wrap gap-2">
                 {PRESET_COLORS.map((color) => (
-                  <button key={color} type="button" onClick={() => setFormData({ ...formData, color })} className={`w-8 h-8 rounded-full ${formData.color === color ? 'ring-2 ring-offset-2 ring-gray-400' : ''}`} style={{ backgroundColor: color }} />
+                  <button key={color} type="button" onClick={() => setFormData({ ...formData, color })} className={`h-8 w-8 rounded-full ${formData.color === color ? 'ring-2 ring-indigo-400 ring-offset-2' : ''}`} style={{ backgroundColor: color }} />
                 ))}
               </div>
             </div>
