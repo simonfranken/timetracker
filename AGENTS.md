@@ -166,7 +166,13 @@ Automated workflow for creating releases using semantic versioning:
   - `npm run db:seed` (Seed database)
 
 ### Full Stack (Root)
-- **Run all:** `docker-compose up`
+- **Run all:** `docker compose up`
+
+### UI Testing with Browser MCP
+- AI agents can use/request the Browser MCP tool to test the UI.
+- Start database and backend services first with `docker compose up` from the repository root.
+- Start the frontend separately with `npm run dev` in `frontend/` so hot reload works during UI testing.
+- The user may need to open their browser and connect MCP before browser-driven testing is available.
 
 ### Testing
 **No test framework is currently configured.** No test runner (`jest`, `vitest`) is installed and no `.spec.ts` or `.test.ts` files exist.
