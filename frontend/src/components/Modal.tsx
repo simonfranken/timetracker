@@ -30,10 +30,10 @@ export function Modal({ title, onClose, children, maxWidth = 'max-w-md' }: Modal
 
   return (
     <div
-      className="fixed inset-0 z-50 !m-0 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 !m-0 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4 backdrop-blur-sm"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className={`w-full ${maxWidth} overflow-hidden rounded-2xl border border-white/60 bg-white/95 shadow-2xl shadow-slate-900/20`}>
+      <div className={`my-auto flex max-h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-2xl border border-white/60 bg-white/95 shadow-2xl shadow-slate-900/20 ${maxWidth}`}>
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
           <button
@@ -45,7 +45,7 @@ export function Modal({ title, onClose, children, maxWidth = 'max-w-md' }: Modal
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="overflow-y-auto p-6">{children}</div>
       </div>
     </div>
   );

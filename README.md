@@ -16,6 +16,7 @@ A multi-user web application for tracking time spent working on projects. Users 
 - **API Keys** - Generate API keys for external tools and AI agents
 - **MCP Integration** - Model Context Protocol endpoint for AI agent access
 - **Responsive UI** - Works on desktop and mobile
+- **Modern List Surfaces** - Reusable card/list rows for dense data views (e.g., API keys)
 
 ## Architecture
 

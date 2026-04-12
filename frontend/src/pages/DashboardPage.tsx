@@ -10,6 +10,12 @@ import { TargetProgressItem } from "@/components/TargetProgressItem";
 import { TimeEntryFormModal } from "@/components/TimeEntryFormModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import {
+  ItemListSurface,
+  ItemListRow,
+  ItemListEmpty,
+  ItemListRowSkeleton,
+} from "@/components/ItemListSurface";
+import {
   formatDate,
   formatTime,
   formatDurationFromDatesHoursMinutes,
@@ -153,63 +159,63 @@ export function DashboardPage() {
         </div>
 
         {recentEntries?.entries.length === 0 ? (
-          <p className="py-8 text-center text-slate-500">
-            No time entries yet. Start tracking time using the timer below.
-          </p>
+          <ItemListEmpty
+            title="No time entries yet"
+            description="Start tracking time using the timer below."
+          />
         ) : (
-          <div className="table-shell">
-            <table className="min-w-full">
-              <thead className="bg-slate-50/80">
-                <tr>
-                  <th className="table-head-cell">
-                    Project
-                  </th>
-                  <th className="table-head-cell">
-                    Date
-                  </th>
-                  <th className="table-head-cell">
-                    Duration
-                  </th>
-                  <th className="table-head-cell text-right">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white">
-                {recentEntries?.entries.slice(0, 5).map((entry) => (
-                  <tr key={entry.id} className="table-row">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <ProjectColorDot color={entry.project.color} />
-                        <div className="ml-2">
-                          <div className="text-sm font-semibold text-slate-900">
-                            {entry.project.name}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {entry.project.client.name}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
-                      <div>{formatDate(entry.startTime)}</div>
-                      <div className="text-xs text-slate-500">{formatTime(entry.startTime)} – {formatTime(entry.endTime)}</div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-sm text-slate-900">
-                      {formatDurationFromDatesHoursMinutes(entry.startTime, entry.endTime, entry.breakMinutes)}
-                      {entry.breakMinutes > 0 && (
-                        <span className="ml-1 text-xs text-slate-500">(−{entry.breakMinutes}m break)</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <button onClick={() => handleOpenModal(entry)} className="mr-1 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"><Edit2 className="h-4 w-4" /></button>
-                      <button onClick={() => setConfirmEntry(entry)} className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ItemListSurface
+            controls={<div className="text-sm text-slate-500">Showing latest {Math.min(5, recentEntries?.entries.length ?? 0)} entries</div>}
+          >
+            {!recentEntries ? (
+              <>
+                <ItemListRowSkeleton />
+                <ItemListRowSkeleton />
+              </>
+            ) : (
+              recentEntries.entries.slice(0, 5).map((entry) => (
+                <ItemListRow
+                  key={entry.id}
+                  title={
+                    <span className="inline-flex items-center gap-2">
+                      <ProjectColorDot color={entry.project.color} />
+                      {entry.project.name}
+                    </span>
+                  }
+                  subtitle={entry.project.client.name}
+                  chips={
+                    <>
+                      <span className="chip">{formatDate(entry.startTime)}</span>
+                      <span className="chip">{formatTime(entry.startTime)} - {formatTime(entry.endTime)}</span>
+                      <span className="chip font-mono text-slate-700">
+                        {formatDurationFromDatesHoursMinutes(entry.startTime, entry.endTime, entry.breakMinutes)}
+                      </span>
+                      {entry.breakMinutes > 0 && <span className="chip">Break {entry.breakMinutes}m</span>}
+                    </>
+                  }
+                  actions={
+                    <>
+                      <button
+                        onClick={() => handleOpenModal(entry)}
+                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setConfirmEntry(entry)}
+                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </button>
+                    </>
+                  }
+                  selected={confirmEntry?.id === entry.id}
+                />
+              ))
+            )}
+          </ItemListSurface>
         )}
       </div>
 

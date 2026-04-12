@@ -1,6 +1,12 @@
 import { useState } from "react";
-import { Key, Plus, Trash2, Copy, Check, AlertTriangle } from "lucide-react";
+import { Key, Plus, Trash2, Copy, Check, AlertTriangle, Search, ArrowUpDown } from "lucide-react";
 import { useApiKeys } from "@/hooks/useApiKeys";
+import {
+  ItemListSurface,
+  ItemListRow,
+  ItemListEmpty,
+  ItemListRowSkeleton,
+} from "@/components/ItemListSurface";
 import type { CreatedApiKey } from "@/types";
 
 export function ApiKeysPage() {
@@ -12,6 +18,8 @@ export function ApiKeysPage() {
   const [createdKey, setCreatedKey] = useState<CreatedApiKey | null>(null);
   const [copiedKey, setCopiedKey] = useState(false);
   const [revokeConfirmId, setRevokeConfirmId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"createdDesc" | "createdAsc" | "nameAsc">("createdDesc");
 
   function formatDate(dateStr: string | null) {
     if (!dateStr) return "Never";
@@ -54,6 +62,22 @@ export function ApiKeysPage() {
     }
   }
 
+  const filteredKeys = (apiKeys ?? [])
+    .filter((key) => {
+      const q = search.trim().toLowerCase();
+      if (!q) return true;
+      return key.name.toLowerCase().includes(q) || key.prefix.toLowerCase().includes(q);
+    })
+    .sort((a, b) => {
+      if (sortBy === "nameAsc") {
+        return a.name.localeCompare(b.name);
+      }
+
+      const aCreated = new Date(a.createdAt).getTime();
+      const bCreated = new Date(b.createdAt).getTime();
+      return sortBy === "createdAsc" ? aCreated - bCreated : bCreated - aCreated;
+    });
+
   return (
     <div className="space-y-6 py-2">
       <div className="page-header sm:flex-nowrap">
@@ -87,71 +111,107 @@ export function ApiKeysPage() {
         </div>
       )}
 
-      {isLoading ? (
-        <div className="py-12 text-center text-sm text-slate-400">Loading...</div>
-      ) : !apiKeys || apiKeys.length === 0 ? (
-        <div className="card border-dashed py-12 text-center">
-          <Key className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-          <p className="text-sm text-slate-500">No API keys yet. Create one to get started.</p>
-        </div>
-      ) : (
-        <div className="table-shell">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50/80 border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Name</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Prefix</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Created</th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-600">Last Used</th>
-                <th className="px-4 py-3 text-right font-semibold text-slate-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {apiKeys.map((key) => (
-                <tr key={key.id} className="hover:bg-slate-50/70">
-                  <td className="px-4 py-3 font-semibold text-slate-900">{key.name}</td>
-                  <td className="px-4 py-3">
-                    <code className="rounded bg-slate-100 px-2 py-1 font-mono text-xs text-slate-700">
-                      {key.prefix}…
-                    </code>
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">{formatDate(key.createdAt)}</td>
-                  <td className="px-4 py-3 text-slate-500">{formatDate(key.lastUsedAt)}</td>
-                  <td className="px-4 py-3 text-right">
-                    {revokeConfirmId === key.id ? (
-                      <div className="inline-flex items-center gap-2">
-                        <span className="text-xs text-red-600">Revoke?</span>
-                        <button
-                          onClick={() => handleRevoke(key.id)}
-                          disabled={deleteApiKey.isPending}
-                          className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          onClick={() => setRevokeConfirmId(null)}
-                          className="text-xs px-2 py-1 border border-slate-300 rounded hover:bg-slate-50 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                        <button
-                          onClick={() => setRevokeConfirmId(key.id)}
-                          className="inline-flex items-center gap-1 rounded px-2 py-1 text-red-600 transition-colors hover:bg-red-50 hover:text-red-800"
-                          title="Revoke key"
-                        >
-                        <Trash2 className="h-4 w-4" />
-                        <span>Revoke</span>
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <ItemListSurface
+        controls={
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <label className="relative block w-full sm:max-w-sm">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name or prefix"
+                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+              />
+            </label>
+
+            <div className="flex items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+                <ArrowUpDown className="h-4 w-4" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as "createdDesc" | "createdAsc" | "nameAsc")}
+                  className="bg-transparent text-sm text-slate-700 outline-none"
+                >
+                  <option value="createdDesc">Newest first</option>
+                  <option value="createdAsc">Oldest first</option>
+                  <option value="nameAsc">Name A-Z</option>
+                </select>
+              </div>
+              <span className="chip">{filteredKeys.length} key{filteredKeys.length === 1 ? "" : "s"}</span>
+            </div>
+          </div>
+        }
+      >
+        {isLoading ? (
+          <>
+            <ItemListRowSkeleton />
+            <ItemListRowSkeleton />
+            <ItemListRowSkeleton />
+          </>
+        ) : !apiKeys || apiKeys.length === 0 ? (
+          <ItemListEmpty
+            icon={<Key className="h-6 w-6" />}
+            title="No API keys yet"
+            description="Create a key to authenticate external tools and agents."
+          />
+        ) : filteredKeys.length === 0 ? (
+          <ItemListEmpty
+            title="No matching API keys"
+            description="Try a different search query or clear filters."
+          />
+        ) : (
+          filteredKeys.map((key) => (
+            <ItemListRow
+              key={key.id}
+              title={key.name}
+              subtitle={`Created ${formatDate(key.createdAt)}`}
+              chips={
+                <>
+                  <code className="rounded-full bg-slate-100 px-2.5 py-1 font-mono text-xs text-slate-700">
+                    {key.prefix}...
+                  </code>
+                  <span className="chip">Last used: {formatDate(key.lastUsedAt)}</span>
+                </>
+              }
+              details={
+                <span className="text-xs text-slate-500">
+                  The raw key is hidden after creation and cannot be recovered.
+                </span>
+              }
+              actions={
+                revokeConfirmId === key.id ? (
+                  <div className="inline-flex items-center gap-2">
+                    <button
+                      onClick={() => handleRevoke(key.id)}
+                      disabled={deleteApiKey.isPending}
+                      className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+                    >
+                      Confirm revoke
+                    </button>
+                    <button
+                      onClick={() => setRevokeConfirmId(null)}
+                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-white"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setRevokeConfirmId(key.id)}
+                    className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700"
+                    title="Revoke key"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Revoke
+                  </button>
+                )
+              }
+              selected={revokeConfirmId === key.id}
+            />
+          ))
+        )}
+      </ItemListSurface>
 
       {/* Create API Key Modal */}
       {showCreateModal && (

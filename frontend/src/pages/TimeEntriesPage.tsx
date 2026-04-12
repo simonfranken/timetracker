@@ -1,10 +1,15 @@
 import { useState } from "react";
-import { Plus, Edit2, Trash2, CalendarDays, List } from "lucide-react";
+import { Plus, Edit2, Trash2, CalendarDays, List, Search, ArrowUpDown } from "lucide-react";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
-import { Spinner } from "@/components/Spinner";
 import { ProjectColorDot } from "@/components/ProjectColorDot";
 import { TimeEntryFormModal } from "@/components/TimeEntryFormModal";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import {
+  ItemListSurface,
+  ItemListRow,
+  ItemListEmpty,
+  ItemListRowSkeleton,
+} from "@/components/ItemListSurface";
 import { CalendarPage } from "@/pages/CalendarPage";
 import {
   formatDate,
@@ -22,6 +27,8 @@ export function TimeEntriesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
   const [confirmEntry, setConfirmEntry] = useState<TimeEntry | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"dateDesc" | "dateAsc" | "durationDesc">("dateDesc");
 
   const handleOpenModal = (entry?: TimeEntry) => {
     setEditingEntry(entry ?? null);
@@ -42,9 +49,32 @@ export function TimeEntriesPage() {
     }
   };
 
-  if (viewMode === "list" && isLoading) {
-    return <Spinner />;
-  }
+  const filteredEntries = (data?.entries ?? [])
+    .filter((entry) => {
+      const q = searchQuery.trim().toLowerCase();
+      if (!q) return true;
+
+      return (
+        entry.project.name.toLowerCase().includes(q) ||
+        entry.project.client.name.toLowerCase().includes(q) ||
+        (entry.description ?? "").toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => {
+      const aStart = new Date(a.startTime).getTime();
+      const bStart = new Date(b.startTime).getTime();
+
+      if (sortBy === "dateAsc") return aStart - bStart;
+      if (sortBy === "dateDesc") return bStart - aStart;
+
+      const aDuration =
+        Math.max(0, new Date(a.endTime).getTime() - new Date(a.startTime).getTime()) -
+        a.breakMinutes * 60_000;
+      const bDuration =
+        Math.max(0, new Date(b.endTime).getTime() - new Date(b.startTime).getTime()) -
+        b.breakMinutes * 60_000;
+      return bDuration - aDuration;
+    });
 
   return (
     <div className={isCalendarView ? "flex h-full min-h-0 flex-col gap-5 overflow-hidden" : "space-y-5"}>
@@ -84,78 +114,107 @@ export function TimeEntriesPage() {
       </div>
 
       {viewMode === "list" ? (
-        <div className="table-shell">
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="bg-slate-50/80">
-                <tr>
-                  <th className="table-head-cell">
-                    Date
-                  </th>
-                  <th className="table-head-cell">
-                    Project
-                  </th>
-                  <th className="table-head-cell">
-                    Duration
-                  </th>
-                  <th className="table-head-cell text-right">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white">
-                {data?.entries.map((entry) => (
-                  <tr key={entry.id} className="table-row">
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-900">
-                      <div>{formatDate(entry.startTime)}</div>
-                      <div className="text-xs text-slate-500">
-                        {formatTime(entry.startTime)} - {formatTime(entry.endTime)}
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <div className="flex items-center">
-                        <ProjectColorDot color={entry.project.color} />
-                        <div className="ml-2">
-                          <div className="text-sm font-semibold text-slate-900">{entry.project.name}</div>
-                          <div className="text-xs text-slate-500">{entry.project.client.name}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-900">
+        <ItemListSurface
+          controls={
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <label className="relative block w-full sm:max-w-sm">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by project, client, or notes"
+                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                />
+              </label>
+
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+                  <ArrowUpDown className="h-4 w-4" />
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as "dateDesc" | "dateAsc" | "durationDesc")}
+                    className="bg-transparent text-sm text-slate-700 outline-none"
+                  >
+                    <option value="dateDesc">Newest first</option>
+                    <option value="dateAsc">Oldest first</option>
+                    <option value="durationDesc">Longest duration</option>
+                  </select>
+                </div>
+                <span className="chip">{filteredEntries.length} entr{filteredEntries.length === 1 ? "y" : "ies"}</span>
+              </div>
+            </div>
+          }
+        >
+          {isLoading ? (
+            <>
+              <ItemListRowSkeleton />
+              <ItemListRowSkeleton />
+              <ItemListRowSkeleton />
+            </>
+          ) : (data?.entries.length ?? 0) === 0 ? (
+            <ItemListEmpty
+              title="No time entries yet"
+              description="Add your first entry to start tracking your work history."
+            />
+          ) : filteredEntries.length === 0 ? (
+            <ItemListEmpty
+              title="No matching entries"
+              description="Try a broader search or switch sorting." 
+            />
+          ) : (
+            filteredEntries.map((entry) => (
+              <ItemListRow
+                key={entry.id}
+                title={
+                  <span className="inline-flex items-center gap-2">
+                    <ProjectColorDot color={entry.project.color} />
+                    {entry.project.name}
+                  </span>
+                }
+                subtitle={entry.project.client.name}
+                chips={
+                  <>
+                    <span className="chip">{formatDate(entry.startTime)}</span>
+                    <span className="chip">{formatTime(entry.startTime)} - {formatTime(entry.endTime)}</span>
+                    <span className="chip font-mono text-slate-700">
                       {formatDurationFromDatesHoursMinutes(
                         entry.startTime,
                         entry.endTime,
                         entry.breakMinutes,
                       )}
-                      {entry.breakMinutes > 0 && (
-                        <span className="ml-1 text-xs text-slate-500">(-{entry.breakMinutes}m)</span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenModal(entry)}
-                        className="mr-1 rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmEntry(entry)}
-                        className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {data?.entries.length === 0 && (
-            <div className="py-8 text-center text-slate-500">No time entries yet</div>
+                    </span>
+                    {entry.breakMinutes > 0 && (
+                      <span className="chip">Break {entry.breakMinutes}m</span>
+                    )}
+                  </>
+                }
+                details={entry.description || "No description"}
+                actions={
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenModal(entry)}
+                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmEntry(entry)}
+                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </button>
+                  </>
+                }
+                selected={confirmEntry?.id === entry.id}
+              />
+            ))
           )}
-        </div>
+        </ItemListSurface>
       ) : (
         <div className="min-h-0 flex-1">
           <CalendarPage />
