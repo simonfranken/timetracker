@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Building2, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Building2 } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import { useClientTargets } from '@/hooks/useClientTargets';
 import { useProjects } from '@/hooks/useProjects';
@@ -19,6 +19,33 @@ const ALL_DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const;
 const DAY_LABELS: Record<string, string> = {
   MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat', SUN: 'Sun',
 };
+const CORRECTION_HOURS_MIN = -1000;
+const CORRECTION_HOURS_MAX = 1000;
+
+type TargetCorrectionForm = {
+  id?: string;
+  date: string;
+  hours: string;
+  description: string;
+};
+
+function parseCorrectionHours(value: string): number | null {
+  if (value.trim() === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatSignedHours(hours: number): string {
+  if (hours === 0) return '±0h';
+
+  const sign = hours > 0 ? '+' : '-';
+  const absolute = Math.abs(hours);
+  const formatted = Number.isInteger(absolute)
+    ? String(absolute)
+    : absolute.toFixed(2).replace(/\.?0+$/, '');
+
+  return `${sign}${formatted}h`;
+}
 
 // Inline target panel shown inside each client card
 function ClientTargetPanel({
@@ -60,20 +87,95 @@ export function ClientsPage() {
   const [targetPeriodType, setTargetPeriodType] = useState<'weekly' | 'monthly'>('weekly');
   const [targetWorkingDays, setTargetWorkingDays] = useState<string[]>(['MON', 'TUE', 'WED', 'THU', 'FRI']);
   const [targetStartDate, setTargetStartDate] = useState('');
-  const [targetCorrections, setTargetCorrections] = useState<Array<{
-    id?: string;
-    date: string;
-    hours: string;
-    description: string;
-  }>>([]);
+  const [targetCorrections, setTargetCorrections] = useState<TargetCorrectionForm[]>([]);
+  const [isAddingCorrection, setIsAddingCorrection] = useState(false);
+  const [newCorrection, setNewCorrection] = useState<TargetCorrectionForm>({
+    date: '',
+    hours: '',
+    description: '',
+  });
+  const [confirmCorrection, setConfirmCorrection] = useState<{
+    index: number;
+    message: string;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const todayIso = new Date().toISOString().split('T')[0];
+
+  const sortedTargetCorrections = targetCorrections
+    .map((correction, index) => ({ correction, index }))
+    .sort((a, b) => {
+      const dateCompare = a.correction.date.localeCompare(b.correction.date);
+      return dateCompare === 0 ? a.index - b.index : dateCompare;
+    });
 
   const toggleTargetDay = (day: string) => {
     setTargetWorkingDays((prev) =>
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
     );
+  };
+
+  const addTargetCorrection = () => {
+    setIsAddingCorrection(true);
+    setNewCorrection({ date: targetStartDate || todayIso, hours: '', description: '' });
+  };
+
+  const removeTargetCorrection = (index: number) => {
+    setTargetCorrections((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+  };
+
+  const promptDeleteTargetCorrection = (index: number, correction: TargetCorrectionForm) => {
+    const parsedHours = parseCorrectionHours(correction.hours);
+    const amount = parsedHours === null ? 'this' : `${formatSignedHours(parsedHours)}`;
+
+    setConfirmCorrection({
+      index,
+      message: `Delete the ${amount} correction dated ${correction.date}? This change is saved only when you click Save Changes.`,
+    });
+  };
+
+  const handleCorrectionDeleteConfirmed = () => {
+    if (!confirmCorrection) return;
+    removeTargetCorrection(confirmCorrection.index);
+  };
+
+  const validateTargetCorrection = (correction: TargetCorrectionForm, rowLabel: string): string | null => {
+    if (!correction.date) {
+      return `${rowLabel}: select a date`;
+    }
+
+    if (correction.date < targetStartDate) {
+      return `${rowLabel}: date cannot be before the target start date`;
+    }
+
+    const parsedHours = parseCorrectionHours(correction.hours);
+    if (parsedHours === null) {
+      return `${rowLabel}: enter an amount`;
+    }
+
+    if (parsedHours < CORRECTION_HOURS_MIN || parsedHours > CORRECTION_HOURS_MAX) {
+      return `${rowLabel}: amount must be between ${CORRECTION_HOURS_MIN} and ${CORRECTION_HOURS_MAX}`;
+    }
+
+    return null;
+  };
+
+  const saveNewCorrection = () => {
+    const validationError = validateTargetCorrection(newCorrection, 'New correction');
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setTargetCorrections((prev) => [...prev, newCorrection]);
+    setNewCorrection({ date: '', hours: '', description: '' });
+    setIsAddingCorrection(false);
+    setError(null);
+  };
+
+  const cancelNewCorrection = () => {
+    setNewCorrection({ date: '', hours: '', description: '' });
+    setIsAddingCorrection(false);
   };
 
   const handleOpenModal = (client?: Client) => {
@@ -113,6 +215,8 @@ export function ClientsPage() {
       setTargetStartDate(todayIso);
       setTargetCorrections([]);
     }
+    setIsAddingCorrection(false);
+    setNewCorrection({ date: '', hours: '', description: '' });
     setError(null);
     setIsModalOpen(true);
   };
@@ -127,6 +231,8 @@ export function ClientsPage() {
     setTargetWorkingDays(['MON', 'TUE', 'WED', 'THU', 'FRI']);
     setTargetStartDate(todayIso);
     setTargetCorrections([]);
+    setIsAddingCorrection(false);
+    setNewCorrection({ date: '', hours: '', description: '' });
     setError(null);
   };
 
@@ -152,6 +258,18 @@ export function ClientsPage() {
       if (!targetStartDate) {
         setError('Select a target start date');
         return;
+      }
+      if (isAddingCorrection) {
+        setError('Add or cancel the new correction before saving');
+        return;
+      }
+      for (let index = 0; index < targetCorrections.length; index++) {
+        const correction = targetCorrections[index];
+        const validationError = validateTargetCorrection(correction, `Correction ${index + 1}`);
+        if (validationError) {
+          setError(validationError);
+          return;
+        }
       }
     }
 
@@ -194,8 +312,8 @@ export function ClientsPage() {
           );
 
           for (const correction of targetCorrections) {
-            const parsedHours = parseFloat(correction.hours);
-            if (!correction.date || isNaN(parsedHours)) {
+            const parsedHours = parseCorrectionHours(correction.hours);
+            if (!correction.date || parsedHours === null) {
               continue;
             }
 
@@ -467,83 +585,124 @@ export function ClientsPage() {
                       <label className="label mb-0">Balance Corrections</label>
                       <button
                         type="button"
-                        onClick={() =>
-                          setTargetCorrections((prev) => [
-                            ...prev,
-                            { date: targetStartDate || todayIso, hours: '', description: '' },
-                          ])
-                        }
-                        className="text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+                        onClick={addTargetCorrection}
+                        disabled={isAddingCorrection}
+                        className={`text-xs font-semibold ${
+                          isAddingCorrection
+                            ? 'cursor-not-allowed text-slate-400'
+                            : 'text-indigo-600 hover:text-indigo-700'
+                        }`}
                       >
                         + Add
                       </button>
                     </div>
 
-                    {targetCorrections.length === 0 ? (
+                    {targetCorrections.length === 0 && !isAddingCorrection ? (
                       <p className="text-sm text-slate-500">No corrections configured.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {targetCorrections.map((correction, index) => (
-                          <div key={correction.id ?? `new-${index}`} className="rounded-lg border border-slate-200 bg-white p-2">
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_110px]">
-                              <input
-                                type="date"
-                                value={correction.date}
-                                onChange={(event) => {
-                                  const date = event.target.value;
-                                  setTargetCorrections((prev) =>
-                                    prev.map((item, itemIndex) =>
-                                      itemIndex === index ? { ...item, date } : item,
-                                    ),
-                                  );
-                                }}
-                                className="input"
-                              />
-                              <input
-                                type="number"
-                                value={correction.hours}
-                                onChange={(event) => {
-                                  const hours = event.target.value;
-                                  setTargetCorrections((prev) =>
-                                    prev.map((item, itemIndex) =>
-                                      itemIndex === index ? { ...item, hours } : item,
-                                    ),
-                                  );
-                                }}
-                                className="input"
-                                step="0.5"
-                                placeholder="Hours"
-                              />
-                            </div>
-                            <div className="mt-2 flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={correction.description}
-                                onChange={(event) => {
-                                  const description = event.target.value;
-                                  setTargetCorrections((prev) =>
-                                    prev.map((item, itemIndex) =>
-                                      itemIndex === index ? { ...item, description } : item,
-                                    ),
-                                  );
-                                }}
-                                className="input"
-                                placeholder="Description (optional)"
-                                maxLength={255}
-                              />
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setTargetCorrections((prev) => prev.filter((_, itemIndex) => itemIndex !== index))
-                                }
-                                className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                                title="Remove correction"
+                    ) : null}
+
+                    {targetCorrections.length > 0 && (
+                      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                        <div className="grid grid-cols-[5.75rem_minmax(0,1fr)_4.25rem_1.5rem] items-center gap-1.5 border-b border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          <span>Date</span>
+                          <span>Description</span>
+                          <span className="text-right">Amount</span>
+                          <span className="sr-only">Delete</span>
+                        </div>
+                        <div className="divide-y divide-slate-100">
+                          {sortedTargetCorrections.map(({ correction, index }) => {
+                            const parsedHours = parseCorrectionHours(correction.hours);
+                            const amountClass = parsedHours === null || parsedHours === 0
+                              ? 'text-slate-500'
+                              : parsedHours > 0
+                                ? 'text-emerald-700'
+                                : 'text-rose-700';
+                            const description = correction.description.trim();
+
+                            return (
+                              <div
+                                key={correction.id ?? `new-${index}`}
+                                className="grid grid-cols-[5.75rem_minmax(0,1fr)_4.25rem_1.5rem] items-center gap-1.5 px-2 py-2 text-xs"
                               >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
+                                <span className="truncate font-medium text-slate-700">{correction.date}</span>
+                                <span
+                                  className={`min-w-0 truncate ${description ? 'text-slate-600' : 'italic text-slate-400'}`}
+                                  title={description || 'No description'}
+                                >
+                                  {description || 'No description'}
+                                </span>
+                                <span className={`truncate text-right font-semibold ${amountClass}`}>
+                                  {parsedHours === null ? '—' : formatSignedHours(parsedHours)}
+                                </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => promptDeleteTargetCorrection(index, correction)}
+                                      className="rounded-md p-1 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+                                      title="Remove correction"
+                                      aria-label="Remove correction"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {isAddingCorrection && (
+                      <div className="mt-2 rounded-lg border border-slate-200 bg-white p-2">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[7.5rem_minmax(0,1fr)_5rem]">
+                          <input
+                            type="date"
+                            value={newCorrection.date}
+                            min={targetStartDate || undefined}
+                            onChange={(event) => setNewCorrection((prev) => ({ ...prev, date: event.target.value }))}
+                            className="w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700 transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-500"
+                            aria-label="New correction date"
+                          />
+                          <input
+                            type="text"
+                            value={newCorrection.description}
+                            onChange={(event) => setNewCorrection((prev) => ({ ...prev, description: event.target.value }))}
+                            className="min-w-0 truncate rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700 transition placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-500"
+                            placeholder="Description"
+                            maxLength={255}
+                            aria-label="New correction description"
+                          />
+                          <input
+                            type="number"
+                            value={newCorrection.hours}
+                            onChange={(event) => setNewCorrection((prev) => ({ ...prev, hours: event.target.value }))}
+                            className="w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-right text-xs font-semibold text-slate-700 transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-500"
+                            min={CORRECTION_HOURS_MIN}
+                            max={CORRECTION_HOURS_MAX}
+                            step="0.5"
+                            placeholder="0"
+                            aria-label="New correction amount"
+                          />
+                        </div>
+                        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <p className="text-[11px] text-slate-500">
+                            Positive amounts add balance credit; negative amounts create deductions.
+                          </p>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={cancelNewCorrection}
+                              className="rounded-md px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-100"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={saveNewCorrection}
+                              className="rounded-md bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-700"
+                            >
+                              Add
+                            </button>
                           </div>
-                        ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -575,6 +734,15 @@ export function ClientsPage() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {confirmCorrection && (
+        <ConfirmModal
+          title="Delete correction?"
+          message={confirmCorrection.message}
+          onConfirm={handleCorrectionDeleteConfirmed}
+          onClose={() => setConfirmCorrection(null)}
+        />
       )}
 
       {confirmClient && (
