@@ -66,13 +66,14 @@ export function OngoingTimerEditModal({ onClose }: OngoingTimerEditModalProps) {
   };
 
   return (
-    <Modal title="Edit Running Timer" onClose={onClose}>
-      {error && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+    <Modal title="Edit running timer" onClose={onClose}>
+      {error && <div className="callout-error mb-4" role="alert">{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="label">Project</label>
+          <label className="label" htmlFor="timer-edit-project">Project</label>
           <select
+            id="timer-edit-project"
             value={projectId}
             onChange={(event) => setProjectId(event.target.value)}
             className="input"
@@ -80,15 +81,16 @@ export function OngoingTimerEditModal({ onClose }: OngoingTimerEditModalProps) {
             <option value="">No project</option>
             {projects?.map((project) => (
               <option key={project.id} value={project.id}>
-                {project.name}
+                {project.name} · {project.client.name}
               </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="label">Start Time</label>
+          <label className="label" htmlFor="timer-edit-start">Start time</label>
           <input
+            id="timer-edit-start"
             type="time"
             value={startTimeInput}
             onChange={(event) => setStartTimeInput(event.target.value)}
@@ -102,7 +104,7 @@ export function OngoingTimerEditModal({ onClose }: OngoingTimerEditModalProps) {
             Cancel
           </button>
           <button type="submit" className="btn-primary" disabled={isSaving}>
-            {isSaving ? "Saving..." : "Save"}
+            {isSaving ? "Saving…" : "Save"}
           </button>
         </div>
       </form>

@@ -239,6 +239,11 @@ Automated workflow for creating releases using semantic versioning:
 ### Styling
 - **Tailwind CSS v3** only. No CSS modules or styled-components.
 - Use `clsx` + `tailwind-merge` for class merging. Icons from `lucide-react` only.
+- **Design tokens** live in `frontend/tailwind.config.js`: `paper` (warm backgrounds and borders), `ink` (text), `primary` (teal), `danger`, and `correction` (balance corrections). Do not use raw `slate`/`indigo` utilities for new UI.
+- **Shared classes** are defined in `frontend/src/index.css`: `btn`, `btn-primary`, `btn-secondary`, `btn-danger`, `btn-ghost-danger`, `btn-sm`, `input`, `label`, `card`, `chip`/`chip-on`, `segmented`, `callout-ok`/`callout-error`, `eyebrow`, `tabular`. Prefer these over repeating utility strings.
+- Project colors are user data: derive tints with `projectTint()` in `utils/colorUtils.ts` instead of hard-coding color pairs.
+- Interactive controls must be real `<button>`/`<a>`/`<input>` elements with labels (`htmlFor`/`aria-label`); touch targets are at least 44px (36px for compact row actions).
+- Navigation is a sidebar (`components/Sidebar.tsx`) with a bottom tab bar below `md`; there is no top navbar or floating timer widget.
 
 ### Backend Validation & Database
 - Validate all incoming request data with Zod schemas in middleware.

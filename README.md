@@ -5,18 +5,16 @@ A multi-user web application for tracking time spent working on projects. Users 
 ## Features
 
 - **OIDC Authentication** - Secure login via external OpenID Connect provider with PKCE flow
-- **Client Management** - Create and manage clients/customers
-- **Project Management** - Organize work into projects with color coding
+- **Clients & Projects** - One screen to manage clients, their color-coded projects and their hourly target
 - **Time Tracking** - Start/stop timer with live elapsed time display
 - **Manual Entry** - Add time entries manually for past work
-- **Calendar View** - Visual week timetable with overlap handling and running timer block
+- **Timesheet** - Week timetable (click or drag an empty slot to add an entry) with overlap handling, a running timer block, a balance-correction row and a list view
 - **Validation** - Overlap prevention and end-time validation
-- **Statistics** - View aggregated time tracking data by project and client
+- **Insights** - Aggregated time by project and client for a week, month, year or custom range, plus target progress, balance corrections and past periods
 - **Client Targets** - Set hourly targets per client with weekly/monthly periods
 - **API Keys** - Generate API keys for external tools and AI agents
 - **MCP Integration** - Model Context Protocol endpoint for AI agent access
-- **Responsive UI** - Works on desktop and mobile
-- **Modern List Surfaces** - Reusable card/list rows for dense data views (e.g., API keys)
+- **Responsive UI** - Sidebar navigation on desktop, bottom tab bar on mobile
 
 ## Architecture
 

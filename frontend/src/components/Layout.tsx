@@ -1,20 +1,14 @@
-import { Outlet } from 'react-router-dom';
-import { Navbar } from './Navbar';
-import { TimerWidget } from './TimerWidget';
+import { Outlet } from "react-router-dom";
+import { MobileTabBar, Sidebar } from "./Sidebar";
 
 export function Layout() {
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden">
-      <Navbar />
-      <main
-        className="grow min-h-0 overflow-auto pt-6"
-        style={{ paddingBottom: "calc(var(--tt-timer-offset) + 1rem)" }}
-      >
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Outlet />
-        </div>
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <main className="min-w-0 flex-1 px-4 pb-32 pt-6 sm:px-6 md:px-10 md:pb-10 md:pt-8">
+        <Outlet />
       </main>
-      <TimerWidget />
+      <MobileTabBar />
     </div>
   );
 }

@@ -1,243 +1,537 @@
-import { useState } from "react";
-import { Plus, Edit2, Trash2, CalendarDays, List, Search, ArrowUpDown } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  addDays,
+  addWeeks,
+  differenceInCalendarDays,
+  endOfDay,
+  format,
+  startOfDay,
+} from "date-fns";
+import { ChevronLeft, ChevronRight, Plus, Diff } from "lucide-react";
+import {
+  WeekCalendar,
+  type WeekCalendarBlock,
+  type WeekCalendarCorrection,
+} from "@/components/WeekCalendar";
+import {
+  TimeEntryFormModal,
+  type NewEntryDefaults,
+} from "@/components/TimeEntryFormModal";
+import { CorrectionModal, type CorrectionModalProps } from "@/components/CorrectionModal";
+import { OngoingTimerEditModal } from "@/components/OngoingTimerEditModal";
+import { Spinner } from "@/components/Spinner";
+import { timeEntriesApi } from "@/api/timeEntries";
 import { useTimeEntries } from "@/hooks/useTimeEntries";
-import { ProjectColorDot } from "@/components/ProjectColorDot";
-import { TimeEntryFormModal } from "@/components/TimeEntryFormModal";
-import { ConfirmModal } from "@/components/ConfirmModal";
+import { useClientTargets } from "@/hooks/useClientTargets";
+import { useClients } from "@/hooks/useClients";
+import { useProjects } from "@/hooks/useProjects";
+import { useTimer } from "@/contexts/TimerContext";
 import {
-  ItemListSurface,
-  ItemListRow,
-  ItemListEmpty,
-  ItemListRowSkeleton,
-} from "@/components/ItemListSurface";
-import { CalendarPage } from "@/pages/CalendarPage";
-import {
-  formatDate,
+  formatDurationHoursMinutes,
+  formatSignedDuration,
   formatTime,
-  formatDurationFromDatesHoursMinutes,
 } from "@/utils/dateUtils";
-import type { TimeEntry } from "@/types";
+import {
+  getMonday,
+  splitIntervalIntoWeekSegments,
+  splitNetSecondsAcrossSegments,
+} from "@/utils/calendarUtils";
+import { DEFAULT_PROJECT_COLOR, projectTint } from "@/utils/colorUtils";
+import type { BalanceCorrection, ClientTargetWithBalance, TimeEntry } from "@/types";
+
+type View = "week" | "list";
+
+type BlockTarget = { type: "entry"; entry: TimeEntry } | { type: "timer" };
+
+interface CorrectionRef {
+  target: ClientTargetWithBalance;
+  correction: BalanceCorrection;
+}
+
+async function fetchWeekEntries(weekStart: Date): Promise<TimeEntry[]> {
+  const weekStartDay = startOfDay(weekStart);
+  const weekEndDay = endOfDay(addDays(weekStartDay, 6));
+  // One day earlier so entries running past midnight into the week are included
+  const fetchStart = startOfDay(addDays(weekStartDay, -1));
+
+  const entries: TimeEntry[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const response = await timeEntriesApi.getAll({
+      startDate: fetchStart.toISOString(),
+      endDate: weekEndDay.toISOString(),
+      page,
+      limit: 100,
+    });
+    entries.push(...response.entries);
+    totalPages = response.pagination.totalPages;
+    page += 1;
+  } while (page <= totalPages);
+
+  return entries;
+}
+
+function weekTitle(weekStart: Date): string {
+  const end = addDays(weekStart, 6);
+  if (weekStart.getMonth() === end.getMonth() && weekStart.getFullYear() === end.getFullYear()) {
+    return `${format(weekStart, "d")} – ${format(end, "d MMM yyyy")}`;
+  }
+  return `${format(weekStart, "d MMM")} – ${format(end, "d MMM yyyy")}`;
+}
+
+function hourToTime(hour: number): string {
+  const total = Math.round(hour * 60);
+  const h = Math.min(23, Math.floor(total / 60));
+  const m = total >= 24 * 60 ? 59 : total % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function correctionDayIndex(correction: BalanceCorrection, weekStart: Date): number {
+  return differenceInCalendarDays(new Date(`${correction.date}T00:00:00`), weekStart);
+}
 
 export function TimeEntriesPage() {
-  const [viewMode, setViewMode] = useState<"list" | "calendar">("calendar");
-  const isCalendarView = viewMode === "calendar";
-  const { data, isLoading, createTimeEntry, updateTimeEntry, deleteTimeEntry } =
-    useTimeEntries(undefined, { enabled: viewMode === "list" });
+  const [weekStart, setWeekStart] = useState<Date>(() => getMonday(new Date()));
+  const [view, setView] = useState<View>("week");
+  const [clientId, setClientId] = useState("");
+  const [projectId, setProjectId] = useState("");
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
-  const [confirmEntry, setConfirmEntry] = useState<TimeEntry | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"dateDesc" | "dateAsc" | "durationDesc">("dateDesc");
+  const [entryDialog, setEntryDialog] = useState<{
+    entry: TimeEntry | null;
+    defaults?: NewEntryDefaults;
+  } | null>(null);
+  const [correctionDialog, setCorrectionDialog] = useState<Pick<
+    CorrectionModalProps,
+    "editing" | "defaults"
+  > | null>(null);
+  const [timerModalOpen, setTimerModalOpen] = useState(false);
 
-  const handleOpenModal = (entry?: TimeEntry) => {
-    setEditingEntry(entry ?? null);
-    setIsModalOpen(true);
-  };
+  const { createTimeEntry, updateTimeEntry, deleteTimeEntry } = useTimeEntries(undefined, {
+    enabled: false,
+  });
+  const { targets } = useClientTargets();
+  const { clients } = useClients();
+  const { projects } = useProjects();
+  const { ongoingTimer, elapsedSeconds } = useTimer();
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingEntry(null);
-  };
+  const weekEntriesQuery = useQuery({
+    queryKey: ["calendarWeekEntries", weekStart.toISOString()],
+    queryFn: () => fetchWeekEntries(weekStart),
+  });
 
-  const handleDeleteConfirmed = async () => {
-    if (!confirmEntry) return;
-    try {
-      await deleteTimeEntry.mutateAsync(confirmEntry.id);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete");
+  const visibleProjects = clientId
+    ? (projects ?? []).filter((p) => p.clientId === clientId)
+    : (projects ?? []);
+  const effectiveClientId =
+    clientId || (projectId ? projects?.find((p) => p.id === projectId)?.clientId : "") || "";
+
+  const { blocks, dayTotals, blockTargets, trackedSeconds } = useMemo(() => {
+    const nextBlocks: WeekCalendarBlock[] = [];
+    const nextTargets = new Map<string, BlockTarget>();
+    const totals = Array.from({ length: 7 }, () => 0);
+
+    const entries = (weekEntriesQuery.data ?? []).filter(
+      (entry) =>
+        (!clientId || entry.project.client.id === clientId) &&
+        (!projectId || entry.projectId === projectId),
+    );
+
+    for (const entry of entries) {
+      const start = new Date(entry.startTime);
+      const end = new Date(entry.endTime);
+      const grossSeconds = Math.max(1, Math.floor((end.getTime() - start.getTime()) / 1000));
+      const netSeconds = Math.max(0, grossSeconds - entry.breakMinutes * 60);
+      const segments = splitIntervalIntoWeekSegments(start, end, weekStart);
+      const netBySegment = splitNetSecondsAcrossSegments(
+        netSeconds,
+        segments.map((segment) => segment.durationSeconds),
+      );
+      const tint = projectTint(entry.project.color);
+
+      segments.forEach((segment, index) => {
+        totals[segment.dayIndex] += netBySegment[index] ?? 0;
+        const id = `${entry.id}__${segment.dayIndex}__${index}`;
+        const label = `${formatTime(segment.segmentStart)}–${formatTime(segment.segmentEnd)}`;
+        nextBlocks.push({
+          id,
+          startHour: segment.startHour,
+          endHour: segment.endHour,
+          dayIndex: segment.dayIndex,
+          background: tint.bg,
+          foreground: tint.fg,
+          accent: tint.mark,
+          title: entry.project.name,
+          subtitle: entry.project.client.name,
+          label,
+          tooltip: entry.description
+            ? `${entry.project.name} (${label})\n${entry.description}`
+            : `${entry.project.name} (${label})`,
+        });
+        nextTargets.set(id, { type: "entry", entry });
+      });
+    }
+
+    const timerMatchesFilter =
+      ongoingTimer &&
+      (!clientId || ongoingTimer.project?.client.id === clientId) &&
+      (!projectId || ongoingTimer.projectId === projectId);
+
+    if (ongoingTimer && timerMatchesFilter) {
+      const start = new Date(ongoingTimer.startTime);
+      const end = new Date(start.getTime() + elapsedSeconds * 1000);
+      const tint = projectTint(ongoingTimer.project?.color ?? DEFAULT_PROJECT_COLOR);
+      splitIntervalIntoWeekSegments(start, end, weekStart).forEach((segment, index) => {
+        totals[segment.dayIndex] += segment.durationSeconds;
+        const id = `running-timer__${segment.dayIndex}__${index}`;
+        const label = `${formatDurationHoursMinutes(elapsedSeconds) || "0m"} · ${formatTime(
+          segment.segmentStart,
+        )}–${formatTime(segment.segmentEnd)}`;
+        nextBlocks.push({
+          id,
+          startHour: segment.startHour,
+          endHour: segment.endHour,
+          dayIndex: segment.dayIndex,
+          background: tint.bg,
+          foreground: tint.fg,
+          accent: tint.mark,
+          title: ongoingTimer.project?.name ?? "Running timer",
+          subtitle: ongoingTimer.project?.client.name,
+          label,
+          tooltip: `Running timer (${label})`,
+          isActive: true,
+        });
+        nextTargets.set(id, { type: "timer" });
+      });
+    }
+
+    return {
+      blocks: nextBlocks,
+      dayTotals: totals,
+      blockTargets: nextTargets,
+      trackedSeconds: totals.reduce((sum, value) => sum + value, 0),
+    };
+  }, [clientId, elapsedSeconds, ongoingTimer, projectId, weekEntriesQuery.data, weekStart]);
+
+  const { calendarCorrections, correctionRefs, correctionDayHours, correctionHours } = useMemo(() => {
+    const refs = new Map<string, CorrectionRef>();
+    const items: WeekCalendarCorrection[] = [];
+    const perDay = Array.from({ length: 7 }, () => 0);
+
+    for (const target of targets ?? []) {
+      if (effectiveClientId && target.clientId !== effectiveClientId) continue;
+      for (const correction of target.corrections) {
+        if (correction.deletedAt) continue;
+        const dayIndex = correctionDayIndex(correction, weekStart);
+        if (dayIndex < 0 || dayIndex > 6) continue;
+        refs.set(correction.id, { target, correction });
+        perDay[dayIndex] += correction.hours;
+        items.push({
+          id: correction.id,
+          dayIndex,
+          label: `${correction.description || "Correction"} · ${target.clientName}`,
+          hoursLabel: formatSignedDuration(correction.hours * 3600),
+        });
+      }
+    }
+
+    return {
+      calendarCorrections: items,
+      correctionRefs: refs,
+      correctionDayHours: perDay,
+      correctionHours: perDay.reduce((sum, value) => sum + value, 0),
+    };
+  }, [effectiveClientId, targets, weekStart]);
+
+  const handleBlockClick = (blockId: string) => {
+    const target = blockTargets.get(blockId);
+    if (!target) return;
+    if (target.type === "timer") {
+      setTimerModalOpen(true);
+    } else {
+      setEntryDialog({ entry: target.entry });
     }
   };
 
-  const filteredEntries = (data?.entries ?? [])
-    .filter((entry) => {
-      const q = searchQuery.trim().toLowerCase();
-      if (!q) return true;
+  const openCorrection = (id: string) => {
+    const ref = correctionRefs.get(id);
+    if (ref) {
+      setCorrectionDialog({ editing: { targetId: ref.target.id, correction: ref.correction } });
+    }
+  };
 
-      return (
-        entry.project.name.toLowerCase().includes(q) ||
-        entry.project.client.name.toLowerCase().includes(q) ||
-        (entry.description ?? "").toLowerCase().includes(q)
-      );
-    })
-    .sort((a, b) => {
-      const aStart = new Date(a.startTime).getTime();
-      const bStart = new Date(b.startTime).getTime();
+  const defaultProjectId =
+    projectId ||
+    (weekEntriesQuery.data
+      ? [...weekEntriesQuery.data].sort(
+          (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
+        )[0]?.projectId
+      : undefined);
 
-      if (sortBy === "dateAsc") return aStart - bStart;
-      if (sortBy === "dateDesc") return bStart - aStart;
+  const openNewEntry = (date: Date, start: string, end: string) =>
+    setEntryDialog({ entry: null, defaults: { date, start, end, projectId: defaultProjectId } });
 
-      const aDuration =
-        Math.max(0, new Date(a.endTime).getTime() - new Date(a.startTime).getTime()) -
-        a.breakMinutes * 60_000;
-      const bDuration =
-        Math.max(0, new Date(b.endTime).getTime() - new Date(b.startTime).getTime()) -
-        b.breakMinutes * 60_000;
-      return bDuration - aDuration;
+  const openNewCorrection = (date: Date) =>
+    setCorrectionDialog({
+      defaults: {
+        date: format(date, "yyyy-MM-dd"),
+        targetId: (targets ?? []).find((t) => t.clientId === effectiveClientId)?.id,
+      },
     });
 
+  const listGroups = useMemo(() => {
+    const entries = (weekEntriesQuery.data ?? []).filter(
+      (entry) =>
+        (!clientId || entry.project.client.id === clientId) &&
+        (!projectId || entry.projectId === projectId),
+    );
+    return Array.from({ length: 7 }, (_, i) => 6 - i)
+      .map((dayIndex) => {
+        const date = addDays(weekStart, dayIndex);
+        const day = format(date, "yyyy-MM-dd");
+        const dayEntries = entries
+          .filter((e) => format(new Date(e.startTime), "yyyy-MM-dd") === day)
+          .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+        const dayCorrections = calendarCorrections.filter((c) => c.dayIndex === dayIndex);
+        return { dayIndex, date, entries: dayEntries, corrections: dayCorrections };
+      })
+      .filter((g) => g.entries.length > 0 || g.corrections.length > 0);
+  }, [calendarCorrections, clientId, projectId, weekEntriesQuery.data, weekStart]);
+
+  const dayTotalLabels = dayTotals.map((s) => (s > 0 ? formatDurationHoursMinutes(s) : ""));
+  const dayCorrectionLabels = correctionDayHours.map((h, i) =>
+    h !== 0 ? `${dayTotals[i] > 0 ? "+ " : ""}${formatSignedDuration(h * 3600).replace("+", "")}` : "",
+  );
+
   return (
-    <div className={isCalendarView ? "flex h-full min-h-0 flex-col gap-5 overflow-hidden" : "space-y-5"}>
-      <div className="page-header shrink-0">
-        <div>
-          <h1 className="page-title">Time Entries</h1>
-          <p className="page-subtitle">Manage your tracked time</p>
+    <div className="flex flex-col gap-5">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="m-0 text-[28px] font-bold">{weekTitle(weekStart)}</h1>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              className="btn w-11 px-0"
+              aria-label="Previous week"
+              onClick={() => setWeekStart((current) => addWeeks(current, -1))}
+            >
+              <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden="true" />
+            </button>
+            <button type="button" className="btn" onClick={() => setWeekStart(getMonday(new Date()))}>
+              This week
+            </button>
+            <button
+              type="button"
+              className="btn w-11 px-0"
+              aria-label="Next week"
+              onClick={() => setWeekStart((current) => addWeeks(current, 1))}
+            >
+              <ChevronRight className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden="true" />
+            </button>
+          </div>
         </div>
-        <button type="button" onClick={() => handleOpenModal()} className="btn-primary">
-          <Plus className="mr-2 h-5 w-5" /> Add Entry
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="segmented" role="group" aria-label="View">
+            {(["week", "list"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={view === v}
+                className={`segmented-item ${view === v ? "segmented-item-on" : ""}`}
+                onClick={() => setView(v)}
+              >
+                {v === "week" ? "Week" : "List"}
+              </button>
+            ))}
+          </div>
+          <button type="button" className="btn" onClick={() => openNewCorrection(new Date())}>
+            <Diff className="h-[18px] w-[18px]" aria-hidden="true" />
+            Correction
+          </button>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => openNewEntry(new Date(), "09:00", "10:00")}
+          >
+            <Plus className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden="true" />
+            Add entry
+          </button>
+        </div>
+      </header>
+
+      <div className="flex flex-wrap items-center gap-2.5">
+        <select
+          aria-label="Client"
+          className="input h-10 w-auto text-sm"
+          value={clientId}
+          onChange={(e) => {
+            setClientId(e.target.value);
+            setProjectId("");
+          }}
+        >
+          <option value="">All clients</option>
+          {clients?.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Project"
+          className="input h-10 w-auto text-sm"
+          value={projectId}
+          onChange={(e) => setProjectId(e.target.value)}
+        >
+          <option value="">All projects</option>
+          {visibleProjects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <span className="text-sm text-ink-muted sm:ml-auto">
+          Tracked <b className="tabular text-ink">{formatDurationHoursMinutes(trackedSeconds) || "0h"}</b> ·
+          Corrections{" "}
+          <b className="tabular text-correction">{formatSignedDuration(correctionHours * 3600)}</b> · Counts
+          toward targets{" "}
+          <b className="tabular text-ink">
+            {formatDurationHoursMinutes(Math.max(0, trackedSeconds + correctionHours * 3600)) || "0h"}
+          </b>
+        </span>
       </div>
 
-      <div className="inline-flex shrink-0 self-start rounded-2xl border border-slate-200 bg-white p-1">
-        <button
-          type="button"
-          className={`inline-flex items-center rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
-            viewMode === "calendar"
-              ? "bg-indigo-100 text-indigo-700"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
-          onClick={() => setViewMode("calendar")}
-        >
-          <CalendarDays className="mr-1.5 h-4 w-4" /> Calendar
-        </button>
-        <button
-          type="button"
-          className={`inline-flex items-center rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
-            viewMode === "list"
-              ? "bg-indigo-100 text-indigo-700"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
-          onClick={() => setViewMode("list")}
-        >
-          <List className="mr-1.5 h-4 w-4" /> List
-        </button>
-      </div>
-
-      {viewMode === "list" ? (
-        <ItemListSurface
-          controls={
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <label className="relative block w-full sm:max-w-sm">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by project, client, or notes"
-                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
-                />
-              </label>
-
-              <div className="flex items-center gap-2">
-                <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
-                  <ArrowUpDown className="h-4 w-4" />
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as "dateDesc" | "dateAsc" | "durationDesc")}
-                    className="bg-transparent text-sm text-slate-700 outline-none"
-                  >
-                    <option value="dateDesc">Newest first</option>
-                    <option value="dateAsc">Oldest first</option>
-                    <option value="durationDesc">Longest duration</option>
-                  </select>
-                </div>
-                <span className="chip">{filteredEntries.length} entr{filteredEntries.length === 1 ? "y" : "ies"}</span>
-              </div>
-            </div>
-          }
-        >
-          {isLoading ? (
-            <>
-              <ItemListRowSkeleton />
-              <ItemListRowSkeleton />
-              <ItemListRowSkeleton />
-            </>
-          ) : (data?.entries.length ?? 0) === 0 ? (
-            <ItemListEmpty
-              title="No time entries yet"
-              description="Add your first entry to start tracking your work history."
-            />
-          ) : filteredEntries.length === 0 ? (
-            <ItemListEmpty
-              title="No matching entries"
-              description="Try a broader search or switch sorting." 
-            />
-          ) : (
-            filteredEntries.map((entry) => (
-              <ItemListRow
-                key={entry.id}
-                title={
-                  <span className="inline-flex items-center gap-2">
-                    <ProjectColorDot color={entry.project.color} />
-                    {entry.project.name}
-                  </span>
-                }
-                subtitle={entry.project.client.name}
-                chips={
-                  <>
-                    <span className="chip">{formatDate(entry.startTime)}</span>
-                    <span className="chip">{formatTime(entry.startTime)} - {formatTime(entry.endTime)}</span>
-                    <span className="chip font-mono text-slate-700">
-                      {formatDurationFromDatesHoursMinutes(
-                        entry.startTime,
-                        entry.endTime,
-                        entry.breakMinutes,
-                      )}
+      {weekEntriesQuery.isLoading ? (
+        <Spinner />
+      ) : weekEntriesQuery.error ? (
+        <div className="callout-error" role="alert">
+          Failed to load time entries.
+        </div>
+      ) : view === "week" ? (
+        <>
+          <WeekCalendar
+            weekStart={weekStart}
+            blocks={blocks}
+            corrections={calendarCorrections}
+            dayTotals={dayTotalLabels}
+            dayCorrectionTotals={dayCorrectionLabels}
+            onBlockClick={handleBlockClick}
+            onCorrectionClick={openCorrection}
+            onAddCorrection={(dayIndex) => openNewCorrection(addDays(weekStart, dayIndex))}
+            onSelectRange={(dayIndex, start, end) =>
+              openNewEntry(addDays(weekStart, dayIndex), hourToTime(start), hourToTime(end))
+            }
+          />
+          <p className="m-0 text-[13px] text-ink-muted">
+            Click an empty slot for a 1-hour entry, or drag to pick start and end. Click an entry to edit it.
+            Hover the <b>±</b> row to add a balance correction for that day.
+          </p>
+        </>
+      ) : (
+        <section className="card px-5 pb-4 pt-2 sm:px-6">
+          {listGroups.length === 0 && (
+            <p className="py-6 text-[15px] text-ink-muted">Nothing tracked this week.</p>
+          )}
+          {listGroups.map((group) => {
+            const dayNet = dayTotals[group.dayIndex];
+            const dayCorr = correctionDayHours[group.dayIndex];
+            return (
+              <div key={group.dayIndex}>
+                <h3 className="eyebrow mb-1 mt-4">
+                  {format(group.date, "EEE d MMM")}
+                  {dayNet > 0 ? ` · ${formatDurationHoursMinutes(dayNet)}` : ""}{" "}
+                  {dayCorr !== 0 && (
+                    <span className="text-correction">
+                      {dayNet > 0 ? "+ " : "· "}
+                      {formatSignedDuration(dayCorr * 3600).replace("+", "")} correction
                     </span>
-                    {entry.breakMinutes > 0 && (
-                      <span className="chip">Break {entry.breakMinutes}m</span>
-                    )}
-                  </>
-                }
-                details={entry.description || "No description"}
-                actions={
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenModal(entry)}
-                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
-                    >
-                      <Edit2 className="h-4 w-4" />
+                  )}
+                </h3>
+                {group.corrections.map((c) => (
+                  <div key={c.id} className="row-divider flex flex-wrap items-center gap-3.5 py-3">
+                    <span
+                      className="h-9 w-2.5 shrink-0 rounded-[5px]"
+                      style={{
+                        background:
+                          "repeating-linear-gradient(135deg,#6E8FC9 0 3px,#EEF3FB 3px 6px)",
+                      }}
+                    />
+                    <div className="min-w-[200px] flex-1">
+                      <b>{c.label.split(" · ")[0]}</b>
+                      <div className="text-[13px] text-ink-muted">
+                        Balance correction · {c.label.split(" · ").slice(1).join(" · ")}
+                      </div>
+                    </div>
+                    <b className="tabular min-w-16 text-right text-correction">{c.hoursLabel}</b>
+                    <button type="button" className="btn btn-sm" onClick={() => openCorrection(c.id)}>
                       Edit
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmEntry(entry)}
-                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </button>
-                  </>
-                }
-                selected={confirmEntry?.id === entry.id}
-              />
-            ))
-          )}
-        </ItemListSurface>
-      ) : (
-        <div className="min-h-0 flex-1">
-          <CalendarPage />
-        </div>
+                  </div>
+                ))}
+                {group.entries.map((entry) => {
+                  const seconds = Math.max(
+                    0,
+                    (new Date(entry.endTime).getTime() - new Date(entry.startTime).getTime()) / 1000 -
+                      entry.breakMinutes * 60,
+                  );
+                  return (
+                    <div key={entry.id} className="row-divider flex flex-wrap items-center gap-3.5 py-3">
+                      <span
+                        className="h-9 w-2.5 shrink-0 rounded-[5px]"
+                        style={{ backgroundColor: entry.project.color ?? DEFAULT_PROJECT_COLOR }}
+                      />
+                      <div className="min-w-[200px] flex-1">
+                        <b>{entry.project.name}</b>
+                        <div className="text-[13px] text-ink-muted">
+                          {entry.project.client.name}
+                          {entry.breakMinutes ? ` · break ${entry.breakMinutes}m` : ""}
+                          {entry.description ? ` · ${entry.description}` : ""}
+                        </div>
+                      </div>
+                      <span className="tabular text-sm text-ink-muted">
+                        {formatTime(entry.startTime)} – {formatTime(entry.endTime)}
+                      </span>
+                      <b className="tabular min-w-16 text-right">
+                        {formatDurationHoursMinutes(seconds) || "0m"}
+                      </b>
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => setEntryDialog({ entry })}
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </section>
       )}
 
-      {isModalOpen && (
+      {entryDialog && (
         <TimeEntryFormModal
-          entry={editingEntry}
-          onClose={handleCloseModal}
+          entry={entryDialog.entry}
+          defaults={entryDialog.defaults}
+          onClose={() => setEntryDialog(null)}
           createTimeEntry={createTimeEntry}
           updateTimeEntry={updateTimeEntry}
+          onDelete={async (entry) => {
+            await deleteTimeEntry.mutateAsync(entry.id);
+          }}
         />
       )}
-
-      {confirmEntry && (
-        <ConfirmModal
-          title="Delete Entry"
-          message="Are you sure you want to delete this time entry?"
-          onConfirm={handleDeleteConfirmed}
-          onClose={() => setConfirmEntry(null)}
+      {correctionDialog && (
+        <CorrectionModal
+          targets={targets ?? []}
+          editing={correctionDialog.editing}
+          defaults={correctionDialog.defaults}
+          onClose={() => setCorrectionDialog(null)}
         />
       )}
+      {timerModalOpen && <OngoingTimerEditModal onClose={() => setTimerModalOpen(false)} />}
     </div>
   );
 }
