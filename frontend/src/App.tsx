@@ -8,7 +8,6 @@ import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { TimeEntriesPage } from "./pages/TimeEntriesPage";
 import { ClientsPage } from "./pages/ClientsPage";
-import { ProjectsPage } from "./pages/ProjectsPage";
 import { StatisticsPage } from "./pages/StatisticsPage";
 import { ApiKeysPage } from "./pages/ApiKeysPage";
 
@@ -32,7 +31,7 @@ function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="time-entries" element={<TimeEntriesPage />} />
           <Route path="clients" element={<ClientsPage />} />
-          <Route path="projects" element={<ProjectsPage />} />
+          <Route path="projects" element={<Navigate to="/clients" replace />} />
           <Route path="statistics" element={<StatisticsPage />} />
           <Route path="api-keys" element={<ApiKeysPage />} />
         </Route>

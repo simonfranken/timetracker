@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { addDays, format, isSameDay } from "date-fns";
 
 export interface WeekCalendarBlock {
@@ -6,7 +6,12 @@ export interface WeekCalendarBlock {
   startHour: number;
   endHour: number;
   dayIndex: number;
-  color: string;
+  /** Light background tint */
+  background: string;
+  /** Readable text color on the tint */
+  foreground: string;
+  /** Solid accent used for the left edge */
+  accent: string;
   title: string;
   subtitle?: string;
   label: string;
@@ -14,16 +19,35 @@ export interface WeekCalendarBlock {
   isActive?: boolean;
 }
 
+export interface WeekCalendarCorrection {
+  id: string;
+  dayIndex: number;
+  label: string;
+  hoursLabel: string;
+}
+
 interface WeekCalendarProps {
   weekStart: Date;
   blocks: WeekCalendarBlock[];
+  corrections: WeekCalendarCorrection[];
   onBlockClick: (id: string) => void;
+  onCorrectionClick: (id: string) => void;
+  onAddCorrection: (dayIndex: number) => void;
+  /** Called after a click (1 hour) or drag on an empty slot */
+  onSelectRange: (dayIndex: number, startHour: number, endHour: number) => void;
   defaultStartHour?: number;
   defaultEndHour?: number;
   minBlockHeight?: number;
   maxOverlapColumns?: number;
   dayTotals?: string[];
+  dayCorrectionTotals?: string[];
 }
+
+const HOUR_HEIGHT = 56;
+const SLOT_MINUTES = 15;
+const SLOTS_PER_HOUR = 60 / SLOT_MINUTES;
+const SLOT_HEIGHT = HOUR_HEIGHT / SLOTS_PER_HOUR;
+const COLUMNS = "56px repeat(7, minmax(0, 1fr))";
 
 interface PositionedBlock extends WeekCalendarBlock {
   column: number;
@@ -36,33 +60,8 @@ interface HiddenIndicator {
   hiddenCount: number;
 }
 
-const HOUR_HEIGHT = 72;
-const HOUR_LABEL_HEIGHT = 16;
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function getHourLabelOffsetTop(lineTop: number, gridHeight: number): number {
-  const centeredGlobalTop = lineTop - HOUR_LABEL_HEIGHT / 2;
-  const clampedGlobalTop = clamp(
-    centeredGlobalTop,
-    0,
-    Math.max(0, gridHeight - HOUR_LABEL_HEIGHT),
-  );
-  return clampedGlobalTop - lineTop;
-}
-
 function clampHour(value: number): number {
   return Math.max(0, Math.min(23.999, value));
-}
-
-function roundsDownToHalfHour(value: number): number {
-  return Math.floor(value * 2) / 2;
-}
-
-function roundsUpToHalfHour(value: number): number {
-  return Math.ceil(value * 2) / 2;
 }
 
 function intervalsOverlap(a: WeekCalendarBlock, b: WeekCalendarBlock): boolean {
@@ -174,17 +173,40 @@ function calculateHiddenIndicators(
   return indicators;
 }
 
+
+function formatHour(hour: number): string {
+  const h = Math.floor(hour);
+  const m = Math.round((hour - h) * 60);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+interface DragState {
+  dayIndex: number;
+  anchor: number;
+  from: number;
+  to: number;
+  rect: DOMRect;
+  moved: boolean;
+}
+
 export function WeekCalendar({
   weekStart,
   blocks,
+  corrections,
   onBlockClick,
-  defaultStartHour = 6,
-  defaultEndHour = 22,
-  minBlockHeight = 30,
+  onCorrectionClick,
+  onAddCorrection,
+  onSelectRange,
+  defaultStartHour = 8,
+  defaultEndHour = 18,
+  minBlockHeight = 28,
   maxOverlapColumns = 2,
   dayTotals,
+  dayCorrectionTotals,
 }: WeekCalendarProps) {
   const today = new Date();
+  const [hover, setHover] = useState<{ dayIndex: number; slot: number } | null>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
 
   const normalizedBlocks = useMemo(
     () =>
@@ -192,211 +214,267 @@ export function WeekCalendar({
         .map((block) => {
           const start = clampHour(Math.min(block.startHour, block.endHour));
           const end = clampHour(Math.max(block.startHour, block.endHour));
-          return {
-            ...block,
-            startHour: start,
-            endHour: Math.max(start + 1 / 120, end),
-          };
+          return { ...block, startHour: start, endHour: Math.max(start + 1 / 120, end) };
         })
         .filter((block) => block.dayIndex >= 0 && block.dayIndex <= 6),
     [blocks],
   );
 
   const visibleStartHour = useMemo(() => {
-    const minBlockHour = normalizedBlocks.reduce(
-      (min, block) => Math.min(min, block.startHour),
-      defaultStartHour,
-    );
-    return Math.max(0, roundsDownToHalfHour(minBlockHour));
+    const min = normalizedBlocks.reduce((m, b) => Math.min(m, b.startHour), defaultStartHour);
+    return Math.max(0, Math.floor(min));
   }, [defaultStartHour, normalizedBlocks]);
 
   const visibleEndHour = useMemo(() => {
-    const maxBlockHour = normalizedBlocks.reduce(
-      (max, block) => Math.max(max, block.endHour),
-      defaultEndHour,
-    );
-    return Math.min(24, roundsUpToHalfHour(maxBlockHour));
+    const max = normalizedBlocks.reduce((m, b) => Math.max(m, b.endHour), defaultEndHour);
+    return Math.min(24, Math.ceil(max));
   }, [defaultEndHour, normalizedBlocks]);
 
-  const totalRangeHours = Math.max(0.5, visibleEndHour - visibleStartHour);
-  const gridHeight = Math.max(640, totalRangeHours * HOUR_HEIGHT);
-
-  const blocksByDay = useMemo(() => {
-    return Array.from({ length: 7 }, (_, dayIndex) =>
-      normalizedBlocks.filter((block) => block.dayIndex === dayIndex),
-    );
-  }, [normalizedBlocks]);
+  const totalRangeHours = Math.max(1, visibleEndHour - visibleStartHour);
+  const gridHeight = totalRangeHours * HOUR_HEIGHT;
+  const slotCount = totalRangeHours * SLOTS_PER_HOUR;
+  const hours = Array.from({ length: totalRangeHours }, (_, i) => visibleStartHour + i);
 
   const positionedByDay = useMemo(
     () =>
-      blocksByDay.map((dayBlocks) =>
-        layoutDayBlocks(dayBlocks, maxOverlapColumns),
+      Array.from({ length: 7 }, (_, dayIndex) =>
+        layoutDayBlocks(
+          normalizedBlocks.filter((block) => block.dayIndex === dayIndex),
+          maxOverlapColumns,
+        ),
       ),
-    [blocksByDay, maxOverlapColumns],
+    [normalizedBlocks, maxOverlapColumns],
   );
 
   const hiddenIndicatorsByDay = useMemo(
     () =>
-      blocksByDay.map((dayBlocks) =>
-        calculateHiddenIndicators(dayBlocks, maxOverlapColumns),
+      Array.from({ length: 7 }, (_, dayIndex) =>
+        calculateHiddenIndicators(
+          normalizedBlocks.filter((block) => block.dayIndex === dayIndex),
+          maxOverlapColumns,
+        ),
       ),
-    [blocksByDay, maxOverlapColumns],
+    [normalizedBlocks, maxOverlapColumns],
   );
 
-  const slots = useMemo(() => {
-    const slotCount = Math.ceil(totalRangeHours * 2);
-    return Array.from({ length: slotCount + 1 }, (_, idx) => visibleStartHour + idx * 0.5);
-  }, [totalRangeHours, visibleStartHour]);
+  const slotAt = (clientY: number, rect: DOMRect) =>
+    Math.max(0, Math.min(slotCount - 1, Math.floor((clientY - rect.top) / SLOT_HEIGHT)));
+  const slotHour = (slot: number) => visibleStartHour + slot / SLOTS_PER_HOUR;
 
-  const columnTemplate = "68px repeat(7, minmax(0, 1fr))";
+  const finishDrag = () => {
+    if (!drag) return;
+    let { from, to } = drag;
+    if (!drag.moved) to = Math.min(slotCount, from + SLOTS_PER_HOUR);
+    setDrag(null);
+    onSelectRange(drag.dayIndex, slotHour(from), slotHour(to));
+  };
 
   return (
-    <div className="h-full min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="h-full min-h-0 overflow-x-auto">
-        <div className="min-w-[960px] h-full min-h-0 flex flex-col">
-          <div className="grid shrink-0" style={{ gridTemplateColumns: columnTemplate }}>
-            <div className="border-b border-r border-slate-200 bg-slate-50" />
-            {Array.from({ length: 7 }, (_, dayIndex) => {
-              const dayDate = addDays(weekStart, dayIndex);
-              const isToday = isSameDay(dayDate, today);
-              const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
-
-              return (
-                <div
-                  key={`header-${dayIndex}`}
-                  className={`border-b border-r border-slate-200 px-3 py-2 ${
-                    isToday
-                      ? "bg-indigo-50"
-                      : isWeekend
-                        ? "bg-slate-50"
-                        : "bg-white"
+    <div className="overflow-x-auto rounded-2xl border border-paper-line bg-white">
+      <div
+        className="min-w-[760px] select-none"
+        onMouseMove={(e) => {
+          if (!drag) return;
+          const slot = slotAt(e.clientY, drag.rect);
+          const from = Math.min(drag.anchor, slot);
+          const to = Math.max(drag.anchor + 1, slot + 1);
+          if (from !== drag.from || to !== drag.to) setDrag({ ...drag, from, to, moved: true });
+        }}
+        onMouseUp={finishDrag}
+        onMouseLeave={() => {
+          setDrag(null);
+          setHover(null);
+        }}
+      >
+        {/* Day headers */}
+        <div className="grid border-b border-paper-line" style={{ gridTemplateColumns: COLUMNS }}>
+          <div />
+          {Array.from({ length: 7 }, (_, dayIndex) => {
+            const date = addDays(weekStart, dayIndex);
+            const isToday = isSameDay(date, today);
+            return (
+              <div key={dayIndex} className="px-2 py-3">
+                <div className={`text-[13px] font-semibold ${isToday ? "text-primary-800" : "text-ink-muted"}`}>
+                  {format(date, "EEE")}
+                </div>
+                <b
+                  className={`-ml-1 mt-0.5 block h-[30px] w-[30px] rounded-full text-center text-lg leading-[30px] ${
+                    isToday ? "bg-primary-600 text-white" : "text-ink"
                   }`}
                 >
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {format(dayDate, "EEE")}
-                  </div>
-                  <div className="text-base font-semibold text-slate-900">{format(dayDate, "d")}</div>
-                  <div className="text-xs text-slate-500">{dayTotals?.[dayIndex] ?? "0h"}</div>
-                </div>
-              );
-            })}
+                  {format(date, "d")}
+                </b>
+                <span className="tabular mt-0.5 block min-h-4 text-xs font-semibold">
+                  {dayTotals?.[dayIndex]}{" "}
+                  <span className="text-correction">{dayCorrectionTotals?.[dayIndex]}</span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Balance corrections */}
+        <div
+          className="grid border-b border-paper-line bg-paper-sunken"
+          style={{ gridTemplateColumns: COLUMNS }}
+        >
+          <div className="px-1.5 py-2.5 text-center text-[13px] font-bold text-ink-muted" title="Balance corrections">
+            ±
+          </div>
+          {Array.from({ length: 7 }, (_, dayIndex) => {
+            const date = addDays(weekStart, dayIndex);
+            return (
+              <div key={dayIndex} className="group flex min-w-0 flex-col gap-1 border-l border-paper-soft p-1.5">
+                {corrections
+                  .filter((c) => c.dayIndex === dayIndex)
+                  .map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => onCorrectionClick(c.id)}
+                      className="flex min-h-8 w-full items-center gap-1.5 rounded-lg border border-dashed border-correction-edge bg-correction-soft px-2 py-1 text-xs font-semibold text-correction"
+                    >
+                      <span className="flex-1 truncate text-left">{c.label}</span>
+                      <span className="tabular">{c.hoursLabel}</span>
+                    </button>
+                  ))}
+                <button
+                  type="button"
+                  onClick={() => onAddCorrection(dayIndex)}
+                  aria-label={`Add correction on ${format(date, "EEEE d MMMM")}`}
+                  className="min-h-8 rounded-lg border border-dashed border-paper-edge px-2 text-xs font-semibold text-ink-muted opacity-0 transition hover:bg-white focus:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+                >
+                  + correction
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Time grid */}
+        <div className="grid" style={{ gridTemplateColumns: COLUMNS }}>
+          <div className="relative" style={{ height: gridHeight }}>
+            {hours.map((hour) => (
+              <div
+                key={hour}
+                className="tabular absolute right-2 text-xs font-medium text-ink-muted"
+                style={{ top: (hour - visibleStartHour) * HOUR_HEIGHT + 4 }}
+              >
+                {String(hour).padStart(2, "0")}
+              </div>
+            ))}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="grid" style={{ gridTemplateColumns: columnTemplate }}>
-              <div className="relative overflow-hidden border-r border-slate-200 bg-slate-50" style={{ height: `${gridHeight}px` }}>
-                {slots.map((hour) => {
-                  const top = ((hour - visibleStartHour) / totalRangeHours) * gridHeight;
-                  const isHourMark = Number.isInteger(hour);
-                  const labelOffsetTop = getHourLabelOffsetTop(top, gridHeight);
+          {Array.from({ length: 7 }, (_, dayIndex) => {
+            const date = addDays(weekStart, dayIndex);
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+            const dayDrag = drag?.dayIndex === dayIndex ? drag : null;
+            const dayHover = !drag && hover?.dayIndex === dayIndex ? hover : null;
 
+            return (
+              <div
+                key={dayIndex}
+                className={`relative cursor-crosshair border-l border-paper-soft ${isWeekend ? "bg-paper-sunken" : ""}`}
+                style={{ height: gridHeight }}
+                onMouseDown={(e) => {
+                  if (e.button !== 0) return;
+                  e.preventDefault();
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const slot = slotAt(e.clientY, rect);
+                  setHover(null);
+                  setDrag({ dayIndex, anchor: slot, from: slot, to: slot + 1, rect, moved: false });
+                }}
+                onMouseMove={(e) => {
+                  if (drag) return;
+                  const slot = slotAt(e.clientY, e.currentTarget.getBoundingClientRect());
+                  if (!hover || hover.dayIndex !== dayIndex || hover.slot !== slot) {
+                    setHover({ dayIndex, slot });
+                  }
+                }}
+                onMouseLeave={() => setHover(null)}
+              >
+                {hours.map((hour) => (
+                  <div
+                    key={hour}
+                    className="absolute inset-x-0 border-t border-paper-soft"
+                    style={{ top: (hour - visibleStartHour) * HOUR_HEIGHT }}
+                  />
+                ))}
+
+                {(hiddenIndicatorsByDay[dayIndex] ?? []).map((indicator) => (
+                  <div
+                    key={`hidden-${indicator.startHour}`}
+                    className="absolute right-1 z-30 rounded bg-paper-hover px-2 py-0.5 text-[10px] font-semibold text-ink-soft"
+                    style={{ top: (indicator.startHour - visibleStartHour) * HOUR_HEIGHT + 2 }}
+                  >
+                    +{indicator.hiddenCount} more
+                  </div>
+                ))}
+
+                {(positionedByDay[dayIndex] ?? []).map((block) => {
+                  const rawTop = (block.startHour - visibleStartHour) * HOUR_HEIGHT;
+                  const height = Math.max(minBlockHeight, (block.endHour - block.startHour) * HOUR_HEIGHT);
+                  const top = Math.min(rawTop, Math.max(0, gridHeight - height));
                   return (
-                    <div
-                      key={`axis-${hour}`}
-                      className="absolute left-0 right-0"
-                      style={{ top: `${top}px` }}
+                    <button
+                      key={block.id}
+                      type="button"
+                      className="absolute z-20 flex cursor-pointer flex-col items-start overflow-hidden rounded-lg px-2 py-1 text-left text-xs leading-tight"
+                      style={{
+                        top,
+                        height,
+                        left: `calc(${block.leftPercent}% + 2px)`,
+                        width: `calc(${block.widthPercent}% - 4px)`,
+                        backgroundColor: block.background,
+                        color: block.foreground,
+                        boxShadow: `inset 3px 0 0 ${block.accent}`,
+                      }}
+                      title={block.tooltip ?? `${block.title} (${block.label})`}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={() => onBlockClick(block.id)}
                     >
-                      {isHourMark && hour < 24 && (
-                        <span
-                          className="absolute right-2 text-[11px] font-medium leading-4 text-slate-500"
-                          style={{ top: `${labelOffsetTop}px` }}
-                        >
-                          {format(new Date(2000, 0, 1, hour, 0), "HH:mm")}
+                      <b className="w-full truncate">{block.title}</b>
+                      {height >= 44 && (
+                        <span className="tabular w-full truncate">
+                          {block.subtitle ? `${block.subtitle} · ` : ""}
+                          {block.label}
                         </span>
                       )}
-                    </div>
+                      {block.isActive && (
+                        <span className="absolute right-1.5 top-1.5 h-2 w-2 animate-pulse rounded-full bg-danger" />
+                      )}
+                    </button>
                   );
                 })}
-              </div>
 
-              {Array.from({ length: 7 }, (_, dayIndex) => {
-                const dayDate = addDays(weekStart, dayIndex);
-                const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
-                const dayBlocks = positionedByDay[dayIndex] ?? [];
-                const dayIndicators = hiddenIndicatorsByDay[dayIndex] ?? [];
-
-                return (
+                {dayHover && (
                   <div
-                    key={`column-${dayIndex}`}
-                    className={`relative border-r border-slate-200 ${isWeekend ? "bg-slate-50/60" : "bg-white"}`}
-                    style={{ height: `${gridHeight}px` }}
+                    className="pointer-events-none absolute inset-x-1 z-10 rounded-lg border border-dashed border-primary-400 bg-primary-50/80 px-2 py-1 text-xs font-semibold text-primary-800"
+                    style={{
+                      top: Math.min(dayHover.slot, Math.max(0, slotCount - SLOTS_PER_HOUR)) * SLOT_HEIGHT,
+                      height: HOUR_HEIGHT,
+                    }}
                   >
-                    {slots.map((hour) => {
-                      const top = ((hour - visibleStartHour) / totalRangeHours) * gridHeight;
-                      const isHourMark = Number.isInteger(hour);
-                      return (
-                        <div
-                          key={`line-${dayIndex}-${hour}`}
-                          className={`absolute left-0 right-0 border-t ${
-                            isHourMark ? "border-slate-200" : "border-slate-100"
-                          }`}
-                          style={{ top: `${top}px` }}
-                        />
-                      );
-                    })}
-
-                    {dayIndicators.map((indicator) => {
-                      const top = ((indicator.startHour - visibleStartHour) / totalRangeHours) * gridHeight;
-                      return (
-                        <div
-                          key={`hidden-${dayIndex}-${indicator.startHour}`}
-                          className="absolute right-1 z-30 rounded bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600"
-                          style={{ top: `${top + 2}px` }}
-                        >
-                          +{indicator.hiddenCount} more
-                        </div>
-                      );
-                    })}
-
-                    {dayBlocks.map((block) => {
-                      const rawTop = ((block.startHour - visibleStartHour) / totalRangeHours) * gridHeight;
-                      const rawHeight =
-                        ((block.endHour - block.startHour) / totalRangeHours) * gridHeight;
-                      const height = Math.max(minBlockHeight, rawHeight);
-                      const top = Math.min(rawTop, Math.max(0, gridHeight - height));
-
-                      let contentLevel: "full" | "medium" | "minimal" = "minimal";
-                      if (height >= 60) {
-                        contentLevel = "full";
-                      } else if (height > 30) {
-                        contentLevel = "medium";
-                      }
-
-                      return (
-                        <button
-                          key={block.id}
-                          type="button"
-                          className="absolute z-20 flex flex-col items-start rounded-md border border-black/10 px-2 py-1 text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                          style={{
-                            top: `${top}px`,
-                            left: `calc(${block.leftPercent}% + 2px)`,
-                            width: `calc(${block.widthPercent}% - 4px)`,
-                            height: `${height}px`,
-                            backgroundColor: block.color,
-                          }}
-                          title={block.tooltip ?? `${block.title} (${block.label})`}
-                          onClick={() => onBlockClick(block.id)}
-                        >
-                          <div className="truncate text-xs font-semibold text-white drop-shadow-sm">
-                            {block.title}
-                          </div>
-                          {contentLevel === "full" && block.subtitle && (
-                            <div className="truncate text-[11px] text-white/90">{block.subtitle}</div>
-                          )}
-                          {(contentLevel === "full" || contentLevel === "medium") && (
-                            <div className="truncate text-[10px] text-white/85">{block.label}</div>
-                          )}
-                          {block.isActive && (
-                            <div className="absolute right-1 top-1 h-2 w-2 rounded-full bg-white/90 animate-pulse" />
-                          )}
-                        </button>
-                      );
-                    })}
+                    + {formatHour(slotHour(dayHover.slot))}
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                )}
+
+                {dayDrag && (
+                  <div
+                    className="pointer-events-none absolute inset-x-1 z-30 rounded-lg bg-primary-600 px-2 py-1 text-xs font-semibold text-white"
+                    style={{
+                      top: dayDrag.from * SLOT_HEIGHT,
+                      height: (dayDrag.to - dayDrag.from) * SLOT_HEIGHT,
+                    }}
+                  >
+                    <span className="tabular">
+                      {formatHour(slotHour(dayDrag.from))} – {formatHour(slotHour(dayDrag.to))}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

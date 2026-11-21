@@ -117,7 +117,7 @@ User
 
 ### 4. Edit Time Tracking Entry
 
-- User can view tracked entries in a **list view** or **calendar view**
+- User can view tracked entries in a **list view** or **week view** (Timesheet)
 - User can **select an entry** and edit:
   - Start time
   - End time
@@ -260,21 +260,25 @@ User
 
 ## UI Requirements
 
-### Timer Widget
+### Navigation
 
-- Always visible when user is logged in
-- Shows "Start" button when no timer is running
-- Shows live elapsed time (HH:MM:SS) and "Stop" button when running
-- Allows project selection while running
+- Desktop: fixed sidebar with **Today**, **Timesheet**, **Insights & targets**, **Clients & projects**, and **API keys** and the user block (name, sign out) at the bottom
+- Mobile: bottom tab bar with the four main screens and a **More** menu (API keys, sign out)
+- While a timer runs, a compact indicator in the sidebar / above the tab bar links back to Today
 
 ### Views
 
-- **Dashboard**: Overview with active timer widget and recent entries
-- **Time Entries**: List/calendar view of all entries with filters (date range, client, project)
-- **Clients & Projects**: Management interface for clients and projects
-- **Statistics**: Aggregated time data with filters and breakdowns
-- **API Keys**: Create and manage API keys for external access
-- **Client Targets**: Set and monitor hourly targets per client
+- **Today** (`/dashboard`): The timer is the main element. Project selection is optional while running; stopping a timer without a project asks "Which project was this?" (with *Discard timer* and *Keep running*). The running timer's start time can be adjusted or the timer discarded. Also shows today's entries, earlier entries this week, and target progress with running balance
+- **Timesheet** (`/time-entries`): Week view (default) and list view for one week, with previous/next/this-week navigation and client/project filters. Summary line: tracked time, corrections, and what counts toward targets. Click an empty slot for a 1-hour entry or drag to choose start and end; click an entry to edit it. A ± row shows balance corrections per day and lets users add or edit them
+- **Insights & targets** (`/statistics`): Range presets (this week, this month, last month, this year, custom) and a client filter; totals, by-project and by-client breakdowns; per-client target cards with running balance, balance corrections (add, edit, delete) and past periods
+- **Clients & projects** (`/clients`): Client list with client details, its projects (name, description, color) and its hourly target (hours, period, start date, working days). `/projects` redirects here
+- **API keys** (`/api-keys`): Create keys (shown once), list with last-used time, revoke
+
+### Dialogs
+
+- **Entry dialog**: project, date, start/end (15-minute steps), break, notes; shows the net total live and validates end after start. Entries that run past midnight keep their end day when edited
+- **Balance correction dialog**: client target (only clients with a target), date, hours, add/remove, optional note, and a preview of the resulting balance. Editing a correction saves the new value and then deletes the old one, because the API has no update endpoint
+- Destructive actions use a confirmation dialog that names the item
 
 ---
 

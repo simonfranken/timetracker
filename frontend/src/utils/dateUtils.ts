@@ -87,3 +87,17 @@ export function toISOTimezone(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toISOString();
 }
+
+/** Signed hours/minutes label such as "+3h 20m", "−45m" or "±0". */
+export function formatSignedDuration(totalSeconds: number): string {
+  const rounded = Math.round(totalSeconds);
+  if (rounded === 0) return "±0";
+  const sign = rounded < 0 ? "−" : "+";
+  return sign + formatDurationHoursMinutes(Math.abs(rounded));
+}
+
+/** Parses a user-typed hours amount ("1,5" or "1.5"). Returns NaN when invalid. */
+export function parseHoursInput(value: string): number {
+  const parsed = Number(value.trim().replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+}
