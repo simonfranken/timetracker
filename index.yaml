@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   timetracker:
   - apiVersion: v2
+    appVersion: 0.5.0
+    created: "2026-11-21T15:17:55.486112099Z"
+    description: A Helm chart for the TimeTracker application
+    digest: 136d4024ce286ebc45b5a341ca7e511f2edac34c85d0ef1a0b3e3f2b1b7341cc
+    name: timetracker
+    type: application
+    urls:
+    - https://github.com/simonfranken/timetracker/releases/download/timetracker-0.5.0/timetracker-0.5.0.tgz
+    version: 0.5.0
+  - apiVersion: v2
     appVersion: 0.4.0
     created: "2026-06-30T09:54:47.516236844Z"
     description: A Helm chart for the TimeTracker application
@@ -51,4 +61,4 @@ entries:
     urls:
     - https://github.com/simonfranken/timetracker/releases/download/timetracker-0.1.2/timetracker-0.1.2.tgz
     version: 0.1.2
-generated: "2026-06-30T09:54:47.516250545Z"
+generated: "2026-11-21T15:17:55.486131969Z"
